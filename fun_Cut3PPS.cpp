@@ -1094,18 +1094,34 @@ EQUATION("MaxLaborProductivity")
 /*
 Defines the Theoretical Labor Productivity of the Firm as incorporated in the various capital vintages of the firm.
 */
+
+v[10]=v[11]=0;
+CYCLE(cur, "Capital")
+ {v[13]=VS(cur,"K");
+  v[12]=VS(cur,"IncProductivity");
+  v[10]+=v[13]*v[12];
+ } 
+
+
 v[0]=0;
 v[1]=0;
 v[2]=V("CapitalDepress");//defines the depression rate of capital
-CYCLE(cur, "Capital")
+
+
+CYCLE_SAFE(cur, "Capital")
  {
   v[3]=VS(cur,"K");
   v[4]=VS(cur,"KAge");
   v[5]=VS(cur, "IncProductivity");
-  v[6]=pow((1-v[2]),v[4]);//computes the depressiation of capital
-  v[7]=v[3]*v[6];//computes the actual stock of this capital vintage that can be used 
-  v[0]+=(v[7]*v[5]);
-  v[1]+=v[7];
+  if(v[5]*v[3]/v[10]<0.001)
+   DELETE(cur);
+  else
+   { 
+    v[6]=pow((1-v[2]),v[4]);//computes the depressiation of capital
+    v[7]=v[3]*v[6];//computes the actual stock of this capital vintage that can be used 
+    v[0]+=(v[7]*v[5]);
+    v[1]+=v[7];
+   } 
  }
 v[8]=v[0]/v[1];//Max Labor productivity computed as the weighted average of the incorporated productivity in every capital vintages
 WRITE("CapitalStock",v[1]);
@@ -1785,19 +1801,20 @@ CYCLE(cur, "KFirm")
   v[53]+=v[52];
   v[60]++;
   v[64]=VS(cur,"NumOrders");
+  WRITES(cur,"WaitTime",1);
+  v[54]=VS(cur,"KQ");//number of productive workers
   if(v[64]>0)
    {
     CYCLES(cur, cur1, "Order")
      {
-      v[54]=VS(cur1,"TimeWaited");
+      
       v[55]=VS(cur1,"KCompletion");
       v[56]=VS(cur1,"KAmount");
-      v[57]=(v[56]-v[55])*v[54];
-      WRITES(cur,"WaitTime",v[57]+1);
+      v[57]=(v[56]-v[55])/v[54];
+      INCRS(cur,"WaitTime",v[57]);
      }
    }
-  else
-   WRITES(cur,"WaitTime",1);
+
   v[65]=VS(cur,"WaitTime");
   v[58]+=v[65];
 // an index that gives the amount of time needed or a firm to complete the production of the capital already ordered
@@ -1810,7 +1827,8 @@ v[62]=v[53]/v[60];
 WRITE("AvCurrProd",v[62]);
 v[63]=v[58]/v[60];
 WRITE("AvWaitTime",v[63]);
- 
+
+v[81]=0;
 CYCLE(cur, "KFirm")
  {
   v[1]=VS(cur,"IdKTech");
@@ -1828,8 +1846,15 @@ CYCLE(cur, "KFirm")
   v[33]=pow(v[28],v[31])*pow(v[29],-v[32])*pow(v[27],-v[30]);
   WRITES(cur,"kselect",v[33]*VS(cur,"kapp"));
   v[70]+=v[33];
+  if(v[33]>v[81])
+   {
+    v[81]=v[33];
+    cur1=cur;
+   }
 
  }
+
+/*****
 v[73]=0;
 CYCLE(cur, "KFirm")
  {
@@ -1854,6 +1879,7 @@ CYCLE(cur, "KFirm")
 
 
 cur=SEARCH_CND("kchoice",v[81]);
+*/
 //if((double)t>1)
  //INTERACTS(cur,"check that it selects the max value", VS(cur,"kchoice")-v[81]);
 
@@ -1873,6 +1899,7 @@ cur=SEARCH_CND("kchoice",v[81]);
 //cur1: is the order of K under production
 
 //cur1=ADDOBJS(cur,"Order");
+cur=cur1;
 v[6]=VLS(cur,"KPrice",1);
 
 //cur1=cur->add_an_object("Order"); FIXED
@@ -2026,7 +2053,7 @@ v[9]=VS(p->up,"KNbrWorkers"); // number of first tier worker as a max to chose t
 v[10]=v[9]*v[8];
 v[6]=max(v[5],0);
 v[11]=min(v[10],v[6]);
-v[12]=INCRS(p->up,"KCumProfit",-(v[11]*v[2]));
+//v[12]=INCRS(p->up,"KCumProfit",-(v[11]*v[2]));
 
 RESULT(v[11] )
 
@@ -2138,6 +2165,7 @@ if(v[5]>0)
     v[6]=(1-v[11])*v[5]; // amount of cumulated profits to pay premia
     v[7]=v[6]*v[9]/v[3]; // amount of premium to this class of workers
     v[8]=INCRS(p->up,"KCumProfit",-v[7]);
+    
    }
   else
    v[7]=0;
