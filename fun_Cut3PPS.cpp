@@ -296,30 +296,20 @@ CYCLE(cur1, "Supply")
 
 RESULT( 1)
 
-EQUATION("ActualSales")
+EQUATION("markup")
 /*
-Sales permissible given the available stock and production.
-
-CORRECTED 4 JEE
+Raise price for positive backlog and reduce it to normal levels otherwise
 */
 
-v[1]=VL("Stocks",1);
-v[0]=V("UnitSales");
+v[0]=V("Stocks"); //here it is computed the backlog
+v[1]=V("backlog");
 v[2]=V("Q");
-
-v[3]=min(v[2]+v[1],v[0]);
-RESULT(v[3] )
-
-
-EQUATION("backlog")
-/*
-Demand exceeding availability, unfulfillled and money returned
-*/
-v[0]=V("UnitSales");
-v[1]=V("ActualSales");
-
-v[2]=v[0]-v[1];
-RESULT(v[2] )
+if(v[1]==0)
+ v[3]=1+V("minMarkup");//normal level of markup
+else
+ v[3]=1+v[1]/v[2];
+v[3]=1+V("minMarkup");//normal level of markup
+RESULT(v[3])
 
 
 EQUATION("Stocks")
@@ -1064,6 +1054,16 @@ v[3]=v[0]*v[1]-v[2];
 
 RESULT(v[3] )
 
+EQUATION("IncLearningK")
+/*
+Express the skills of the firm in exploiting the capital, where 0 is the inability to use the capital and
+1 is the maximum exploitation
+*/
+
+v[0]=V("aLearningK");
+v[1]=CURRENT*v[0]+(1-v[0]);
+RESULT(v[1] )
+
 
 EQUATION("MaxKQ")
 /*
@@ -1076,7 +1076,8 @@ v[3]=V("K");
 v[4]=V("KAge");
 v[9]=V("CapitalIntens");
 v[6]=pow((1-v[2]),v[4]);//computes the depressiation of capital
-v[7]=v[3]*v[6];//computes the actual stock of this capital vintage that can be used 
+v[19]=V("IncLearningK");
+v[7]=v[3]*v[6]*v[19];//computes the actual stock of this capital vintage that can be used 
 
 v[8]=v[7]/v[9];
 
@@ -1741,16 +1742,17 @@ v[8]=V("CapitalIntens");
 v[9]=(v[4]/v[8])*v[7];
 v[10]=v[9]-v[3];
 */
-v[11]=max(v[10],0);
+//v[11]=max(v[10],0);
 //Cannot understand, and in any case does not work
 
 V("MaxLaborProductivity");
 v[3]=V("CapitalCapacity");
 v[4]=V("ExpectedSales");
+v[5]=V("backlog")/10;//a tenth of backlog should be got rid of.
 v[7]=V("DesiredUnusedCapacity");
 v[8]=V("CapitalIntens");
 
-v[9]=(v[4])*v[7];
+v[9]=(v[4]+v[5])*v[7];
 
 v[10]=v[9]-v[3];
 v[11]=max(v[10],0);
@@ -1971,6 +1973,7 @@ CYCLE_SAFE(cur, "Order")
       WRITELS(cur1,"IncProductivity",v[9],t);
       v[10]=VS(cur,"KSkillBiais");
       WRITELS(cur1,"IncSkillBiais",v[10],t);
+      WRITELS(cur1,"IncLearningK",0.1,t);
       WRITELS(cur1,"KAge",0,t);
       v[11]=VS(cur,"KP");
       v[12]=v[11]*v[5];
