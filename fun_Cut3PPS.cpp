@@ -1749,6 +1749,7 @@ V("MaxLaborProductivity");
 v[3]=V("CapitalCapacity");
 v[4]=V("ExpectedSales");
 v[5]=V("backlog")/10;//a tenth of backlog should be got rid of.
+v[5]=0;
 v[7]=V("DesiredUnusedCapacity");
 v[8]=V("CapitalIntens");
 
