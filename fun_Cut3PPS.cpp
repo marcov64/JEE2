@@ -2,6 +2,111 @@
 
 MODELBEGIN
 
+/******************************************
+*
+*	DEMOGRAPHY
+*
+******************************************/
+
+EQUATION("Health")
+/*
+Measure the sustainability of the firm comparing the ratio of (smoothed) monetary sales to cumulated profits.
+Values close to 0 approach exit, 1 is perfect health.
+*/
+v[2]=V("aHealth");
+
+v[1]=V("CumProfit");
+if(v[1]>0)
+ END_EQUATION(v[2]*CURRENT+ (1-v[2]));
+
+v[3]=-v[1]; 
+v[0]=V("smoothMonSales");
+
+v[4]=min(1,v[0]/v[3]);//minimum between 1 and the ration of sales to (neg.) profits
+
+v[5]=v[2]*CURRENT+(1-v[2])*v[4];
+
+//if(v[5]<0)
+// INTERACT("neg.health", v[3]);
+RESULT(v[5] )
+
+EQUATION("smoothMonSales")
+/*
+Smoothed value of MonetarySales
+*/
+V("Trade");
+v[0]=V("aMonSales");
+v[1]=V("MonetarySales");
+RESULT(CURRENT*v[0]+(1-v[0])*v[1] )
+
+
+EQUATION("Entry")
+/*
+Entry of new firms, function triggered by SectorEntry
+*/
+
+v[0]=VS(c,"probEntry");
+if(RND>1-v[0])
+ END_EQUATION(0);
+
+v[1]=VS(c,"IdGood");
+cur1=ADDOBJS(cur,"Firm");
+WRITES(cur1,"IdFirm",V("CounterIdFirm"));
+WRITES(cur1,"product",v[1]);
+cur2=SEARCH_CNDS(cur1,"IdCh2",2);
+v[2]=VS(c,"FrontierX");
+WRITELS(cur2,"x",v[2],t);
+
+v[10]=VS(c,"shareEntryCumProfit");
+v[11]=VS(c,"maxCumProfit");
+WRITELS(cur1,"CumProfit",v[10]*v[11],t);
+RESULT( 1)
+
+
+EQUATION("Exit")
+/*
+Remove firms with too poor Health
+*/
+
+v[0]=VS(c,"IdGood");
+v[2]=VS(c,"minHealth");
+v[4]=0;
+CYCLE_SAFE(cur, "Firm")
+ {
+  v[1]=VS(cur,"product");
+  if(v[1]==v[0])
+   {
+    v[3]=VS(cur,"Health");
+    if(v[3]<v[2])
+     {
+      v[4]++;
+      DELETE(cur);
+     }
+   }
+ }
+
+RESULT(v[4] )
+
+EQUATION("Demography")
+/*
+Comment
+*/
+v[0]=V("Exit");
+INCR("NFirmsS",-v[0]);
+v[1]=V("Entry");
+INCR("NFirmsS",v[1]);
+RESULT( 1)
+
+
+
+
+EQUATION("CounterIdFirm")
+/*
+Issue idFirm progressive numbers
+*/
+
+RESULT(CURRENT+1 )
+
 
 /******************************************
 *
@@ -1217,9 +1322,9 @@ if(v[5]>0)
        }
      }
     v[9]=V("wage");
-    v[4]=VS(p->up,"ro"); //share of profits dedicated to R&D
+    v[4]=VS(p->up,"roPremia"); //share of profits dedicated to R&D
     v[5]=VS(p->up,"CumProfit"); // cumulated profits after subtracting investment expenditures
-    v[6]=(1-v[4])*v[5]; // amount of profits to pay premia
+    v[6]=v[4]*v[5]; // amount of profits to pay premia
     v[7]=v[6]*v[9]/v[3];
     v[8]=INCRS(p->up,"CumProfit",-v[7]);
    }
@@ -1249,14 +1354,15 @@ V("InvestmentDecision");
 v[1]=V("CumProfit");
 if(v[1]>0)
  {
-  v[2]=V("ro"); // share of profits devoted to R&D
+  v[2]=V("roRD"); // share of profits devoted to R&D
   v[3]=v[1]*v[2];
   v[4]=INCR("CumProfit",-v[3]);
+  v[5]=ceil(log(1+v[3]));
  }
 else
- v[3]=0;
+ v[5]=0;
 
-RESULT(v[3] )
+RESULT(v[5] )
 
 
 EQUATION("ExploreSector")
@@ -1338,78 +1444,26 @@ The actual product innovation: extraction of a quality given the quality of the 
 */
 
 v[17]=V("RdExpenditure");
-if(v[17]>0)
- {
-  V("Trade");
-  cur=SEARCH("PNeed"); // go in the product currently produced
-  CYCLES(cur, cur1, "Ch")
-   {
-    v[1]=VS(cur1,"IdCh");
-    if(v[1]>1)
-     v[2]=VS(cur1,"x"); // check the current quality level of the prouced good
-   }
-  v[3]=V("ExploreSector"); // the sector for which the firm is drawing the prototipe
-  v[4]=V("product"); // the sector in which the firm is currently producing
-  v[5]=abs(v[4]-v[3])+1; // the distance between the two sectors
-  v[6]=V("ProdShockP"); // productivity shock that determines the variance of the product innovation
-  v[7]=v[6]/v[5]; // variance of the product innovation
-  v[8]=norm(v[2],v[7]); // outcome of the product innovation
-  v[13]=max(0,v[8]);
-  if(v[3]==v[4])
-   { // in case in which the innvoation has occured in the current sector of production, retain the prototype only if better then the quality currently produced
-    if(v[13]<=v[2])
-     END_EQUATION(-1);
-   }
-  v[12]=1000;
-  CYCLE(cur, "PNeed")
-   { 
-    v[9]=VS(cur,"IdPNeed");
-    if(v[9]>0) // cycle only trhourgh the prototipes and leave alone the current prouction
-     {
-      CYCLES(cur, cur1, "Ch")
-       {
-        v[10]=VS(cur1,"IdCh");
-        if(v[10]>1) //check the value of the quality characteristic
-         {
-          v[11]=VS(cur1,"x");
-          if(v[11]<=v[12])
-           {
-            v[12]=v[11];
-            v[14]=v[9]; // retain the Id of the prototipe with lower quality
-           }
-         }
-       }
-  
-     }
-   }
-  CYCLE(cur, "PNeed")
-   {
-    v[15]=VS(cur,"IdPNeed");
-    if(v[15]==v[14])
-     { // in the prototipe with the lowest quality
-      WRITES(cur,"productProt",v[3]); // write the sector to which the prototipe pertains
-      CYCLES(cur, cur1, "Ch")
-       { // serach for the quality characteristic
-        v[16]=VS(cur1,"IdCh");
-        if(v[16]>1)
-         { 
-          v[17]=VS(cur1,"x");
-          if(v[13]>v[17])
-           { // change the quality only if better then the one of the lowest prototipe
-            WRITELS(cur1,"x",v[13],t); // write its quality
-            WRITES(cur,"productProt",v[3]); // and write the sector of the prototipe
-           }
-          else
-           v[14]=-2;
-          
-         }
-       }
-  
-     }
-   }
- }
-else
- v[14]=0;
+if(v[17]<0)
+ END_EQUATION(0);
+ 
+V("Trade");
+cur1=SEARCH_CND("IdPNeed",0);
+cur=SEARCH_CNDS(cur1,"IdCh",2); 
+v[2]=VS(cur,"x"); // check the current quality level of the produced good
+v[4]=V("product"); // the sector in which the firm is currently producing
+v[6]=V("ProdShockP"); // productivity shock that determines the variance of the product innovation
+
+for(v[14]=v[9]=0; v[9]<v[17]; v[9]++)
+{
+ v[8]=norm(v[2],v[6]); // outcome of the product innovation
+ if(v[8]>v[2])
+  {
+   v[14]++;
+   WRITELS(cur,"x",v[8],t);
+   v[8]=v[2];
+  }
+}
 
 RESULT(v[14] )
 
@@ -2936,6 +2990,10 @@ CYCLE(cur2, "Supply")
     if(v[14]<0)
      v[14]=INTERACT("nEG. price", v[14]);
     WRITELS(cur,"price",v[14], t-1);
+    v[64]=VS(cur,"product");
+    cur3=SEARCH_CND("IdGood",v[64]);
+    INCRS(cur3,"NFirmsS",1);
+
    }
  }
 
@@ -4251,7 +4309,7 @@ Averge quality of the good within a sector, weighted by firms market share
 
 V("HerfIndexS");
 v[1]=V("IdGood");
-v[2]=v[7]=0;
+v[2]=v[17]=v[18]=v[8]=v[9]=0;
 CYCLES(p->up, cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
@@ -4272,18 +4330,37 @@ CYCLES(p->up, cur, "Supply")
               v[6]=VS(cur3,"x"); // check the value of the quality
               v[7]=VS(cur1,"MsSector");
               v[2]+=v[6]*v[7];
+              if(v[6]>v[17])
+               v[17]=v[6];
+               
              }
            }
 
          }
        }
-
+      v[19]=VS(cur1,"CumProfit");
+      if(v[18]<v[19]);
+       v[18]=v[19];
      }
    }
 
  }
-
+WRITE("maxXS",v[17]);
+WRITE("maxCumProfit",v[18]);
 RESULT(v[2])
+
+EQUATION("FrontierX")
+/*
+Imitable value of X for new entrants
+*/
+
+V("AvxS");
+v[0]=V("maxXS");
+
+v[1]=V("aFrontierX");
+
+v[2]=v[1]*CURRENT+(1-v[1])*v[0];
+RESULT(v[2] )
 
 
 EQUATION("AvpS")
