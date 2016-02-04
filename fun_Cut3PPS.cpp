@@ -50,10 +50,12 @@ if(RND>1-v[0])
  END_EQUATION(0);
 
 v[1]=VS(c,"IdGood");
-cur1=ADDOBJS(cur,"Firm");
+cur1=ADDOBJ("Firm");
 WRITES(cur1,"IdFirm",V("CounterIdFirm"));
 WRITES(cur1,"product",v[1]);
-cur2=SEARCH_CNDS(cur1,"IdCh2",2);
+cur=SEARCHS(cur1,"PNeed");
+cur2=ADDOBJS(cur,"Ch");
+WRITES(cur2,"IdCh",2);
 v[2]=VS(c,"FrontierX");
 WRITELS(cur2,"x",v[2],t);
 
