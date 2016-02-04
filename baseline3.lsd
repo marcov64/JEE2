@@ -299,7 +299,7 @@ Label Root
 				Var: PotD
 				Var: DeltaPotD
 				Param: NFirmsS
-				Var: HerfIndexS
+				Param: HerfIndexS
 				Param: TotSalesS
 				Var: ExcessD
 				Param: sectorProb
@@ -938,7 +938,7 @@ Var: GrowthSSales 0 n + n n
 Var: PotD 1 s + n n	1	1	1	1	1	1	1	1	1	1
 Var: DeltaPotD 0 n + n n
 Param: NFirmsS 0 s + n n	0	0	0	0	0	0	0	0	0	0
-Var: HerfIndexS 0 s + n n
+Param: HerfIndexS 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: TotSalesS 0 s + n n	5	5	0	0	0	0	0	0	0	0
 Var: ExcessD 0 s + n n
 Param: sectorProb 0 n + n n	0	0	0	0	0	0	0	0	0	0
@@ -3382,7 +3382,7 @@ _INIT_
 
 END_DESCRIPTION
 
-Variable_HerfIndexS
+Parameter_HerfIndexS
 Herfindhal index for each sector
 _INIT_
 

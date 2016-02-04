@@ -198,7 +198,7 @@ CYCLE(cur, "Firm")
  v[24]=1; //assume the option to be viable
  //cur3=SEARCH_CNDS(cur,"IdPNeed",v[30]);
  v[37]=VS(cur,"product");
- if(v[37]!=v[30])
+ if(v[37]!=v[30] || VS(cur,"backlog")/VLS(cur,"Q",1) >0.3 )
   {// if the the firm does not produce the product the consumer is looking for, exclude it from the avaialble options
    WRITES(cur,"app",0);
   }
