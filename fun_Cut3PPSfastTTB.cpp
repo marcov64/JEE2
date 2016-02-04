@@ -46,7 +46,7 @@ Entry of new firms, function triggered by SectorEntry
 */
 
 v[0]=VS(c,"probEntry");
-if(RND>v[0])
+if(RND>1-v[0])
  END_EQUATION(0);
 
 v[1]=VS(c,"IdGood");
@@ -182,7 +182,14 @@ CYCLE(cur, "Firm")
  { // compute the number of firms producing the product that satisfy the need the consumer is looking for
   v[37]=VS(cur,"product"); // the product (addressing a particular need) the firm is producing
   if(v[37]==v[30])
-    v[38]++; 
+    {
+     v[38]++;
+     WRITES(cur,"app",1);
+    }
+   else
+    {
+     WRITES(cur,"app",0);
+    }   
  }
 //v[35]=SUMS(cur4,"IdFirm"); // check if there is any firm producing the good
 if(v[38]<1)
@@ -193,19 +200,15 @@ if(v[38]<1)
  // in all other cases continue the purhase
 
 //select out the options scoring less than the minimum on some characteristic
-//|| RND < VS(cur,"backlog")/VLS(cur,"Q",1)
+//VS(cur,"backlog")/VLS(cur,"Q",1) >0.3 
+SORTS(SEARCH("Supply"),"Firm","app", "DOWN");
+
 CYCLE(cur, "Firm")
 {
+ if(VS(cur,"app")==0)
+   break;
  v[24]=1; //assume the option to be viable
- //cur3=SEARCH_CNDS(cur,"IdPNeed",v[30]);
- v[37]=VS(cur,"product");
- if(v[37]!=v[30] )
-  {// if the the firm does not produce the product the consumer is looking for, exclude it from the avaialble options
-   WRITES(cur,"app",0);
-  }
- else
-  { // if the firm produces the required good
-   CYCLES(cur, cur1, "Ch")
+ CYCLES(cur, cur1, "Ch")
     {//for any characteristic
      v[20]=VS(cur1,"IdCh");
      cur2=SEARCH_CNDS(c,"IdDCh",v[20]); //find the ch. of the option you are browsing
@@ -230,7 +233,7 @@ CYCLE(cur, "Firm")
      }
     else
       WRITES(cur,"app",0);
-  }
+  
 }	
 if(v[0]==0) //no option viable
  {
@@ -249,6 +252,7 @@ if(v[0]==1)
 
 //INTERACT("First", v[0]);
 
+SORTS(SEARCH("Supply"),"Firm","app", "DOWN");
 CYCLES(c, cur, "DCh")
  {//for each characteristic, in the order of the decision maker
   v[27]=1;
@@ -259,9 +263,8 @@ CYCLES(c, cur, "DCh")
   CYCLE(cur1, "Firm")
    { //find the (observed) maximum in respect of IdDCh, excluding the non viable, or already removed, options
     v[7]=VS(cur1,"app");
-    if(v[7]==1)
-     {//if it is still active (a potential choice)
-     //cur3=SEARCH_CNDS(cur1,"IdPNeed",v[30]);
+    if(v[7]==0)
+      break;
      cur2=SEARCH_CNDS(cur1,"IdCh",v[1]); //find the ch. of the option
      v[5]=VS(cur2,"obs_x");//read its value
      if(v[5]<0)
@@ -274,15 +277,12 @@ CYCLES(c, cur, "DCh")
      if(v[5]*v[25]>v[6]*v[25])
       v[6]=v[5];//record in v[6] the maximum (observed) value
      WRITES(cur1,"curr_x",v[5]); //write the observed value
-     } 
-    else 
-     WRITES(cur1,"curr_x",-1); //write a default value for non-active options
    }
   CYCLE(cur1, "Firm")
    { //second cycle: remove options below maximum * tau
     v[7]=VS(cur1,"app");
-    if(v[7]==1)
-    {
+    if(v[7]==0)
+      break;
      v[8]=VS(cur1,"curr_x");
      if(v[25]==-1)
       v[33]=1/v[3];
@@ -293,18 +293,23 @@ CYCLES(c, cur, "DCh")
        WRITES(cur1,"app",0);
        v[0]--;
       }
-    }
    }
 //INTERACT("Subsequ", v[0]);
  }
 if(v[0]==0)
  INTERACT("No firms left",v[0]);//error control: v[0] must be >=1
 
+v[33]=v[34]=0;
 CYCLE(cur, "Firm")
  {
   v[32]=VS(cur,"app");
   if(v[32]==1)
+   {
    INCRS(cur,"MonetarySales",v[31]/v[0]);
+   v[33]++;
+   }
+  if(v[33]==v[0])
+   break;
  }
 
 RESULT(v[0] )
@@ -406,19 +411,17 @@ RESULT( 1)
 
 EQUATION("markup")
 /*
-
 Raise price for positive backlog and reduce it to normal levels otherwise
 */
 
 v[0]=V("Stocks"); //here it is computed the backlog
 v[1]=V("backlog");
 v[2]=V("Q");
-if(v[1]==0 || v[2]==0 )
+if(v[1]==0)
  v[3]=1+V("minMarkup");//normal level of markup
 else
  v[3]=1+v[1]/v[2];
-
-//v[3]=1+V("minMarkup");//normal level of markup
+v[3]=1+V("minMarkup");//normal level of markup
 RESULT(v[3])
 
 
