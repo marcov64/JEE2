@@ -316,17 +316,14 @@ Set a trading cycle:
 - initialize "sales" to zero in firms;
 - compute the sales for each firm as the total of classes and needs 
 */
-V("ExpectedSales"); // given that "UnitSales" is a parameter, firms need first to compute expected sales to use the value of "UnitSales" from t-1 (see the "ExpectedSales" equation)
+
 CYCLE(cur1, "Supply")
  {
   CYCLES(cur1, cur, "Firm")
   {
    v[1]=VS(cur,"MonetarySales");
    WRITES(cur,"MonetarySalesL",v[1]); // before setting the sales to 0 for the current period computation, register the lagged value of monetary sales
-   v[2]=VS(cur,"UnitSales");
-   WRITES(cur,"UnitSalesL",v[2]); // before setting the unit sales to 0 for the current computation, register the lagged value
    WRITES(cur,"MonetarySales",0);
-   WRITES(cur,"UnitSales",0);
   }
  }
 
@@ -388,21 +385,116 @@ CYCLE(cur, "Class")
      }
    }
  }
-
-CYCLE(cur1, "Supply")
- {  
-  CYCLES(cur1, cur, "Firm")
-  {
-   v[5]=VS(cur,"MonetarySales");
-   v[6]=VLS(cur,"price",1);
-   if(v[5]>0)
-     WRITES(cur,"UnitSales",v[5]/v[6]);
-   else
-     WRITES(cur,"UnitSales",0); 
-  }
-}
-
 RESULT( 1)
+
+EQUATION("UnitDemand")
+/*
+Number of product units demanded
+*/
+V("Trade"); //ensure that Monetary sales is updated
+v[0]=VL("price",1);
+v[1]=V("MonetarySales");
+
+RESULT(v[1]/v[0] )
+
+EQUATION("Revenues")
+/*
+Money flowing in
+*/
+v[0]=V("UnitSales");
+v[1]=VL("price",1);
+v[2]=V("backlogSales");
+
+RESULT(v[0]*v[1]+v[2] )
+
+EQUATION("UnitSales")
+/*
+Actual sales
+*/
+
+v[0]=V("UnitDemand");
+v[2]=V("Stocks");
+v[3]=VL("Stocks",1);
+v[4]=V("backlog");
+v[5]=VL("backlog",1);
+v[6]=max(v[4]-v[5],0);
+
+v[7]=v[0]-v[2]+v[3]-v[6];
+RESULT(v[7] )
+
+
+EQUATION("backlog")
+/*
+If production Q exceeds demand then fill as much back orders as possible
+*/
+
+v[0]=V("Q");
+v[1]=V("UnitDemand");
+v[2]=VL("backlog",1);
+v[3]=VL("Stocks",1);
+WRITE("backlogSales",0);
+v[24]=v[23]=0;
+if(v[0]>v[1]+v[3] && v[2]>0)
+ {//fill some orders reducing the backlog
+ // if(v[3]>0)
+   //INTERACT("Positive stocks with backlog",v[3]);
+  v[7]=v[0]-v[1]; //excess production available to fill backlog orders 
+  v[5]=v[6]=0;
+  v[9]=V("numBLI");
+  CYCLE_SAFE(cur, "blItem")
+   {
+    v[4]=VS(cur,"blQ");
+    v[8]=VS(cur,"blPrice");
+    if(v[4]<=v[7])
+     {//Q sufficient to fill completely the order
+      v[24]++;
+      v[5]+=v[4];//Q filled
+      v[6]+=v[4]*v[8];//sales produced
+      v[7]-=v[4];
+//      INTERACTS(cur, "Test2", v[7]);
+      v[10]=INCR("numBLI",-1);
+      if(v[10]>0)
+       DELETE(cur);
+      else
+       WRITES(cur,"blQ",0); 
+     }
+    else 
+     {v[23]++;
+      v[11]=v[4]-v[7];//units remaining in the BL
+      v[5]+=v[7]; //units sold
+      v[6]+=v[7]*v[8];
+      INCRS(cur,"blQ",-v[7]);
+      v[7]=0;
+     }    
+   }
+  v[2]-=v[5];
+  WRITE("backlogSales",v[6]);
+  v[21]=1;
+ }
+ 
+if(v[0]+v[3]<v[1])
+ {//generate a new backlog item
+  v[13]=INCR("numBLI",1);
+  if(v[13]==1)
+   cur1=SEARCH("blItem");
+  else
+   cur1=ADDOBJ("blItem");
+  WRITES(cur1,"blQ",v[1]-v[0]-v[3]);
+  WRITES(cur1,"blPrice",VL("price",1));
+  v[2]+=v[1]-v[0]-v[3];
+  v[21]=2; 
+ }
+if(v[2]<-0.001)
+ INTERACT("Neg.bl",v[7]);
+ 
+v[22]=0;
+CYCLE(cur, "blItem")
+ {
+  v[22]+=VS(cur,"blQ");
+ }
+if(abs(v[22]-v[2])>0.001)
+  INTERACT("DiffSum",v[22]);
+RESULT(v[2] )
 
 EQUATION("markup")
 /*
@@ -416,7 +508,7 @@ v[2]=V("Q");
 if(v[1]==0 || v[2]==0 )
  v[3]=1+V("minMarkup");//normal level of markup
 else
- v[3]=1+v[1]/v[2];
+ v[3]=1+V("minMarkup")+log(1+v[1]/v[2]);
 
 //v[3]=1+V("minMarkup");//normal level of markup
 RESULT(v[3])
@@ -425,26 +517,15 @@ RESULT(v[3])
 EQUATION("Stocks")
 /*
 Stocks
-
 */
-
-V("Trade");
 v[0]=VL("Stocks",1);
 v[1]=V("Q");
-v[3]=V("UnitSales");
+v[3]=V("UnitDemand");
+v[4]=VL("backlog",1);
 v[6]=V("backlog");
+v[5]=v[0]+v[1]-v[3]+v[6]-v[4];
 
-v[5]=v[0]+v[1]-v[3]-v[6];
 
-
-if(v[5]<0)
- {//increase backlog
- v[6]=INCR("backlog",-v[0]-v[1]+v[3]);
- v[5]=0;
- }
-if(v[5]>0 && v[6]>0)
- WRITE("backlog",0);
- 
 RESULT(v[5] )
 
 
@@ -455,7 +536,7 @@ Production, as a function of the difference between past stocks and desired ones
 V("Trade");
 v[0]=VL("Stocks",1);
 v[1]=V("DesiredStocks"); // percentage of expected sales firms want to stock to face unexpected demand
-v[2]=V("backlog");
+v[2]=VL("backlog",1);
 v[4]=V("ExpectedSales");
 v[3]=v[1]*v[4];
 v[6]=max(0,v[3]+v[2]+v[4]-v[0] );
@@ -465,10 +546,10 @@ RESULT(v[6])
 
 EQUATION("ExpectedSales")
 /*
-Smoothed level of sales
+Smoothed level demand
 */
 v[0]=VL("ExpectedSales",1);
-v[1]=VL("UnitSales",1);
+v[1]=V("UnitDemand");
 v[2]=V("aES");
 v[3]=v[0]*v[2]+(1-v[2])*v[1];
 
@@ -1022,10 +1103,9 @@ EQUATION("Profit")
 /*
 Profit, difference between revenues and total costs
 */
-v[0]=V("UnitSales");
-v[1]=V("price");
+v[0]=V("Revenues");
 v[2]=V("LaborCost");
-v[3]=v[0]*v[1]-v[2];
+v[3]=v[0]-v[2];
 v[4]=INCR("CumProfit",v[3]);
 
 RESULT(v[3] )
@@ -1109,19 +1189,6 @@ CYCLE(cur, "Labor")
  }
 
 RESULT(v[0] )
-
-
-EQUATION("ExpectedProfit4")
-/*
-Level of profits perceived by the firms as if they did not have the excess lbour capacity
-*/
-
-v[0]=V("UnitSales");
-v[1]=V("price");
-v[2]=V("ExpectedLCost");
-v[3]=v[0]*v[1]-v[2];
-
-RESULT(v[3] )
 
 
 EQUATION("LaborCost")
@@ -2967,7 +3034,8 @@ CYCLE(cur2, "Supply")
  {
   CYCLES(cur2, cur, "Firm")
    {// a second cycle to set the price in t-1
-    v[10]=VS(cur,"markup");
+    v[10]=1+V("minMarkup");
+    WRITELS(cur,"markup",v[10], t);
     v[21]=v[22]=0;
     CYCLES(cur,cur1, "Labor")
      {
@@ -3034,12 +3102,14 @@ CYCLE(cur, "KFirm")
  }
 cur=SEARCH("Country");
 WRITELS(cur,"MovAvNbrWork",v[3],t);
-v[10]=V("AvPrice");
+//v[10]=V("AvPrice");
+v[10]=1;
 WRITELS(cur,"AvPrice",v[10], t-1);
 WRITELS(cur,"MovAvPrice",v[10], t-1);
 WRITES(cur,"InitAvPrice",v[10]);
 //WRITELS(cur,"MinWage",v[10],1);
-v[11]=V("AggProductivity");
+//v[11]=V("AggProductivity");
+v[11]=1;
 WRITELS(cur,"MovAvAggProd",v[11], t-1);
 WRITELS(cur,"AggProductivity",v[11], t-1);
 WRITES(cur,"InitAggProd",v[11]);
@@ -3696,10 +3766,8 @@ CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
    {
-    v[1]=VS(cur1,"UnitSales");
-    v[2]=VS(cur1,"price");
-    v[3]=v[1]*v[2];
-    v[4]+=v[3];
+    v[1]=VS(cur1,"Revenues");
+    v[4]+=v[1];
    }
 
  }
