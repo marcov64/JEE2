@@ -143,6 +143,7 @@ Label Root
 					Param: aHealth
 					Var: smoothMonSales
 					Param: aMonSales
+					Var: Visibility
 
 				}
 
@@ -643,7 +644,7 @@ Var: WageIncome 1 s + n n	50
 Var: NonWageIncome 1 s + n n	100
 Var: MinWage 1 n + n n	1
 Var: AggProductivity 1 s + n n	1
-Func: TTB_multiplWinner 0 n + n n
+Func: TTB_multiplWinner 0 n + d n
 Var: TotUSales 0 n + n n
 Var: AvPrice 1 n + n n	1
 Var: Inflation 1 n + n n	2
@@ -740,9 +741,9 @@ Param: IdFirm 0 n + n n	1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16	17	18	19	20	21	22
 Var: Stocks 1 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Param: MonetarySales 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Param: DesiredStocks 0 n + n n	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1
-Var: Q 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+Var: Q 1 s + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Var: price 1 n + n n	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2
-Var: backlog 1 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Var: backlog 1 s + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Var: UnitSales 0 n + n n
 Var: ExpectedSales 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: DesiredUnusedCapacity 0 n + n n	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05	1.05
@@ -813,6 +814,7 @@ Var: Health 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	
 Param: aHealth 0 n + n n	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9
 Var: smoothMonSales 1 n + n n	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100
 Param: aMonSales 0 n + n n	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9
+Var: Visibility 1 s + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 
 Object: PNeed C	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: IdPNeed 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
@@ -975,7 +977,7 @@ SIM_NUM 1
 SEED 3
 MAX_STEP 2000
 EQUATION fun_Cut3PPS.cpp
- MODELREPORT report_baseline4.html
+ MODELREPORT report_baseline5.html
 
 DESCRIPTION
 
@@ -1003,7 +1005,6 @@ END_DESCRIPTION
 
 Variable_Av_InvHerfIndex
 Average of firms inverse Herfindahl index, across runs
-
 _INIT_
 
 END_DESCRIPTION
@@ -1652,10 +1653,8 @@ END_DESCRIPTION
 
 Variable_AggProductivity
 (no description available)
-
 _INIT_
  All 5 instances equal to 1.
-
 END_DESCRIPTION
 
 Function_TTB_multiplWinner
@@ -1696,10 +1695,8 @@ END_DESCRIPTION
 
 Variable_NbrWorkers
 (no description available)
-
 _INIT_
  All 1 instances equal to 5.
-
 END_DESCRIPTION
 
 Variable_Unemployment
@@ -1974,7 +1971,6 @@ END_DESCRIPTION
 
 Variable_Atkinson
 Atkinson index of inequality for income in period t-1
-
 _INIT_
 
 END_DESCRIPTION
@@ -1993,18 +1989,14 @@ END_DESCRIPTION
 
 Variable_GdpNominal
 (no description available)
-
 _INIT_
  All 1 instances equal to 1.
-
 END_DESCRIPTION
 
 Variable_GdpConstant
 (no description available)
-
 _INIT_
  All 1 instances equal to 1.
-
 END_DESCRIPTION
 
 Parameter_IndexYear
@@ -2045,7 +2037,6 @@ END_DESCRIPTION
 
 Variable_AvProfit
 Average profits across firms
-
 _INIT_
 
 END_DESCRIPTION
@@ -2058,14 +2049,12 @@ END_DESCRIPTION
 
 Variable_AvKCumProfit
 Average of the capital firms cumulated profits
-
 _INIT_
 
 END_DESCRIPTION
 
 Variable_AvCumProfit
 Average of firms cumulated profits
-
 _INIT_
 
 END_DESCRIPTION
@@ -2222,9 +2211,7 @@ END_DESCRIPTION
 
 Variable_Stocks
 (no description available)
-
 _INIT_
-
 
 END_DESCRIPTION
 
@@ -2242,31 +2229,24 @@ END_DESCRIPTION
 
 Variable_Q
 (no description available)
-
 _INIT_
  All 50 instances equal to 1.
-
 END_DESCRIPTION
 
 Variable_price
 (no description available)
-
 _INIT_
  All 100 instances equal to 0.2.
-
 END_DESCRIPTION
 
 Variable_backlog
 (no description available)
-
 _INIT_
-
 
 END_DESCRIPTION
 
 Variable_UnitSales
 (no description available)
-
 _INIT_
  All 100 instances equal to 0.
 END_DESCRIPTION
@@ -2291,14 +2271,12 @@ END_DESCRIPTION
 
 Variable_markup
 (no description available)
-
 _INIT_
  All 250 instances equal to 1.05.
 END_DESCRIPTION
 
 Variable_Revenues
 (no description available)
-
 _INIT_
 
 END_DESCRIPTION
@@ -2317,10 +2295,8 @@ END_DESCRIPTION
 
 Variable_Profit
 (no description available)
-
 _INIT_
  All 100 instances equal to 1.
-
 END_DESCRIPTION
 
 Variable_InvestmentDecision
@@ -2425,7 +2401,6 @@ END_DESCRIPTION
 
 Variable_LaborCost
 (no description available)
-
 _INIT_
 
 END_DESCRIPTION
@@ -2468,10 +2443,8 @@ END_DESCRIPTION
 
 Parameter_CumProfit
 (no description available)
-
 _INIT_
  All 10 instances equal to 1.
-
 END_DESCRIPTION
 
 Parameter_betaPrice
@@ -2696,6 +2669,12 @@ _INIT_
  All 100 instances equal to 0.9.
 END_DESCRIPTION
 
+Variable_Visibility
+(no description available)
+_INIT_
+ All 100 instances equal to 1.
+END_DESCRIPTION
+
 Object_PNeed
 (no description available )
 _INIT_
@@ -2836,7 +2815,6 @@ END_DESCRIPTION
 
 Variable_WagePrem
 (no description available)
-
 _INIT_
  All 4 instances equal to 0.
 END_DESCRIPTION

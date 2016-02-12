@@ -51,6 +51,7 @@ if(RND>v[0])
 
 v[1]=VS(c,"IdGood");
 cur1=ADDOBJ("Firm");
+WRITELS(cur1,"Visibility",0.01, t);
 WRITES(cur1,"IdFirm",V("CounterIdFirm"));
 WRITES(cur1,"product",v[1]);
 cur=SEARCHS(cur1,"PNeed");
@@ -58,6 +59,10 @@ cur2=ADDOBJS(cur,"Ch");
 WRITES(cur2,"IdCh",2);
 v[2]=VS(c,"FrontierX");
 WRITELS(cur2,"x",v[2],t);
+
+cur=ADDOBJS(cur1,"Labor");
+WRITES(cur,"IdLabor",2);
+WRITES(cur,"wagecoeff",2);
 
 v[10]=VS(c,"shareEntryCumProfit");
 v[11]=VS(c,"maxCumProfit");
@@ -76,7 +81,8 @@ v[4]=0;
 CYCLE_SAFE(cur, "Firm")
  {
   v[1]=VS(cur,"product");
-  if(v[1]==v[0])
+  v[6]=VS(cur,"Waiting");
+  if(v[1]==v[0] && v[6]==0) //don't kill firms waiting for a capital good to be delivered.
    {
     v[3]=VS(cur,"Health");
     if(v[3]<v[2])
@@ -154,6 +160,12 @@ CYCLE(cur, "Need")
 RESULT(v[5] )
 
 
+EQUATION("Visibility")
+/*
+Comment
+*/
+
+RESULT(CURRENT*0.9+0.1 )
 
 
 EQUATION("TTB_multiplWinner")
@@ -177,6 +189,7 @@ v[0]=0;
 v[31]=VS(c->up,"Expenditure")/VS(c->up,"TotIterations"); //amount to spend on this iteration
 v[30]=VS(c,"IdNeed");
 //cur4=SEARCH_CND("IdSector",v[30]); // search for the sector that produces the good that satisfies the need that the iteration is buying
+/*
 v[38]=0;
 CYCLE(cur, "Firm")
  { // compute the number of firms producing the product that satisfy the need the consumer is looking for
@@ -191,7 +204,7 @@ if(v[38]<1)
   END_EQUATION(-2); // exit the purchase and move to next one
  }
  // in all other cases continue the purhase
-
+*/
 //select out the options scoring less than the minimum on some characteristic
 //|| RND < VS(cur,"backlog")/VLS(cur,"Q",1)
 CYCLE(cur, "Firm")
@@ -199,7 +212,7 @@ CYCLE(cur, "Firm")
  v[24]=1; //assume the option to be viable
  //cur3=SEARCH_CNDS(cur,"IdPNeed",v[30]);
  v[37]=VS(cur,"product");
- if(v[37]!=v[30] )
+ if(v[37]!=v[30] || RND>VS(cur,"Visibility"))
   {// if the the firm does not produce the product the consumer is looking for, exclude it from the avaialble options
    WRITES(cur,"app",0);
   }
@@ -407,19 +420,36 @@ v[2]=V("backlogSales");
 
 RESULT(v[0]*v[1]+v[2] )
 
-EQUATION("UnitSales")
+EQUATION("Control")
 /*
-Actual sales
+Control the allocation of production
 */
-
-v[0]=V("UnitDemand");
+v[0]=V("Q");
+v[1]=V("UnitSales");
 v[2]=V("Stocks");
 v[3]=VL("Stocks",1);
 v[4]=V("backlog");
 v[5]=VL("backlog",1);
-v[6]=max(v[4]-v[5],0);
 
-v[7]=v[0]-v[2]+v[3]-v[6];
+v[6]=v[1]+v[2]-v[3]+max(0,v[5]-v[4]);
+if(abs(v[6]-v[0])>0.001)
+ INTERACT("Control failed",v[6]);
+RESULT( 1)
+
+EQUATION("UnitSales")
+/*
+
+Actual sales
+*/
+
+v[0]=V("Q");
+v[1]=V("UnitDemand");
+v[2]=V("Stocks");
+v[3]=VL("Stocks",1);
+
+v[7]=min(v[1], v[0]+max(0,v[3]-v[2]) );
+if(v[7]<0)
+ INTERACT("NegSales", v[7]);
 RESULT(v[7] )
 
 
@@ -494,6 +524,7 @@ CYCLE(cur, "blItem")
  }
 if(abs(v[22]-v[2])>0.001)
   INTERACT("DiffSum",v[22]);
+v[2]=v[22];  
 RESULT(v[2] )
 
 EQUATION("markup")
@@ -2030,9 +2061,10 @@ cur=SEARCH_CND("kchoice",v[81]);
 //cur1=ADDOBJS(cur,"Order");
 cur=cur1;
 v[6]=VLS(cur,"KPrice",1);
-
-//cur1=cur->add_an_object("Order"); FIXED
-cur1=ADDOBJS(cur,"Order");
+if(VS(cur,"NumOrders")==0)
+ cur1=SEARCHS(cur,"Order");
+else
+ cur1=ADDOBJS(cur,"Order");
 
 v[2]=VS(c,"IdFirm");
 v[3]=VS(c,"KapitalNeed");
@@ -2066,6 +2098,8 @@ EQUATION("KProductionFlow")
 V("Vacancies");
 v[0]=V("KQ"); //production capacity of the firm
 v[1]=V("NumOrders");
+if(v[1]==0)
+ END_EQUATION(0);
 v[2]=v[0]/v[1]; //one way to determine the amount of K production capacity per order. Otherwise...
 
 v[3]=0;
@@ -2106,9 +2140,18 @@ CYCLE_SAFE(cur, "Order")
       v[12]=v[11]*v[5];
       WRITELS(cur1,"KExpenditures",v[12], t);
       WRITES(cur->hook,"Waiting",0); //tell the firms it has the new capital
-      INCR("NumOrders",-1);
       SORTS(cur->hook,"Capital","IncProductivity", "DOWN");
-      DELETE(cur);
+      v[20]=INCR("NumOrders",-1);
+      if(v[20]>0)
+       DELETE(cur);
+      else
+       {
+        WRITES(cur,"KAmount",0);
+        WRITES(cur,"KCompletion",0);
+        WRITES(cur,"TimeWaited",0);
+        WRITES(cur,"Kproductivity",0);
+        
+       } 
      }
    }
   else
