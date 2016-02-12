@@ -60,9 +60,14 @@ WRITES(cur2,"IdCh",2);
 v[2]=VS(c,"FrontierX");
 WRITELS(cur2,"x",v[2],t);
 
+cur3=SEARCH_CNDS(cur1,"IdLabor",1);
+cur4=SEARCH_CND("NumClass",1);
+cur3->hook=cur4;
 cur=ADDOBJS(cur1,"Labor");
 WRITES(cur,"IdLabor",2);
+cur4=SEARCH_CND("NumClass",2);
 WRITES(cur,"wagecoeff",2);
+cur->hook=cur4;
 
 v[10]=VS(c,"shareEntryCumProfit");
 v[11]=VS(c,"maxCumProfit");
@@ -321,6 +326,26 @@ CYCLE(cur, "Firm")
  }
 
 RESULT(v[0] )
+
+EQUATION("Production")
+/*
+After trading fix any remaining variable to compute
+*/
+
+CYCLE(cur, "Supply")
+ {
+  CYCLES(cur, cur1, "Firm")
+   {
+    VS(cur1,"Profit");
+    VS(cur1,"InvestmentDecision");
+    CYCLES(cur1, cur2, "Labor")
+     {
+      VS(cur2,"WagePrem");
+      VS(cur2,"Workforce");      
+     }
+   }
+ }
+RESULT(1 )
 
 
 EQUATION("Trade")
@@ -684,7 +709,7 @@ else
       WRITES(cur3,"NumClass",v[18]+1);
       WRITELS(cur3,"Expenditure",0, t-1);
       WRITELS(cur3,"ShareWageIncome",0, t-1);
-      WRITELS(cur3,"ShareNonWageIncome",0, t-1);
+      WRITELS(cur3,"SharePremiaIncome",0, t-1);
       //WRITELS(cur3,"ShareProfitIncome",0, t-1);
       WRITELS(cur3,"Savings",0, t-1);
       // WRITELS(cur3,"NumIterations",0, t-1); to reactivate when NumIterations report the number of consumers in the labour class, as given in equation "ShareWageIncome". Otherwise the number of iterations simply define the number of representative conusmers (groups) in a class
@@ -692,7 +717,6 @@ else
       WRITES(cur3,"Individuals",v[20]); // set the number of individuals to nu;ber of workers of the new class
       v[35]=VS(cur2,"LorenzInd"); 
       WRITES(cur3,"LorenzInd",v[35]+v[20]); // set total number of workers as previous total plus new workers
-      WRITELS(cur3,"SavingsTot",0, t-1); // set the total savings to 0
       WRITELS(cur3,"NoConsumption",0, t-1); // set the savongs due to unavailability of the good to 0
       CYCLES(cur3, cur, "Need")
        { // enter in neds and characterisitcs to change the tau parameter (the minimum is set every period)
@@ -727,8 +751,14 @@ else
 
        }
      v[35]=VS(cur3,"ComputeShare"); // set the distribution of expenditure shares across needs for the new class
-
+     cur1->hook=cur3;
      }
+    else
+     {
+      cur3=SEARCH_CND("NumClass",v[18]+1);
+      cur1->hook=cur3;
+     
+     } 
 
    }
   if(v[18]>2 && v[19]<v[21])
@@ -802,12 +832,9 @@ CYCLE(cur, "Demand")
             WRITES(cur3,"Minimum",v[8]); // write the value of the parameter, as the previous Minimum times the multiplier
            }
          }
-
        }
-
      }
    }
-
  }
 
 
@@ -860,226 +887,119 @@ v[7]=v[3]/v[4];
 
 RESULT(v[7] )
 
+EQUATION("Income")
+/*
+Comment
+*/
+v[0]=V("PremiaIncome");
+v[1]=V("WageIncome");
+RESULT(v[0]+v[1] )
+
 
 EQUATION("Expenditure")
 /*
 Total money spent by consumers, computed as a combination of past consumption and available resources (from wages and stock options)
 */
 v[0]=VL("Expenditure",1);
-v[1]=VLS(p->up->up, "WageIncome",1);
-v[3]=VL("ShareWageIncome",1);
-v[4]=VLS(p->up->up, "NonWageIncome",1);
-v[5]=VL("ShareNonWageIncome",1);
-v[13]=VS(p->up->up,"ExIncome"); // exogenous income
-v[14]=V("ShareExIncome"); // share of exogenous income (should be modelled to change while classes increase)
-//v[7]=V("ShareProfitIncome");
-v[9]=VL("SavingsTot",1);
+v[1]=VL("Income",1);
 v[11]=V("Savings");
 v[12]=V("NoConsumption");
 v[2]=V("aEx");
-v[10]=v[0]*v[2]+(1-v[2])*(v[1]*v[3]+v[4]*v[5]+v[12]+v[5]*v[13]);
-//v[10]=v[0]*v[2]+(1-v[2])*(v[1]*v[3]+v[4]*v[5]+v[12]+v[11]);
+v[10]=v[0]*v[2]+(1-v[2])*(v[1]+v[12]);
 
-v[8]=v[2]*(v[1]*v[3]+v[4]*v[5]-v[0]); // residual (excess consumption) income not consumed (overconsumed) due to the smoothing factor, increase (decreases) savings
-//v[8]=v[2]*(v[1]*v[3]+v[4]*v[5]-v[0]+v[11]);
+v[8]=v[10]-v[1]-v[12];
+
 WRITE("Savings",v[8]); // saving are first computed here as smoothed consumption, and in the ollowing step during the puchase, in case a need cannot be satisfied
 
 RESULT(v[10] )
 
 
-EQUATION("SavingsTot")
+
+EQUATION("TotIncome")
 /*
-Total amount of savings, which sums:
-the amount of available income (wage, non wage, and past savings) not consumed due to smoothing
-the amount of income not used due to non availability of the good
+Total income from the wage
 */
 
-V("Trade");
-v[1]=V("Savings"); // smoothed consumption
-v[2]=V("NoConsumption"); // good not available to satisfy a specific need
-v[3]=v[1]+v[2];
+v[1]=V("TotWage");
+v[2]=V("TotPremia");
 
-RESULT(v[3] )
+RESULT(v[1]+v[2] )
 
-
-
-EQUATION("WageIncome")
+EQUATION("TotWage")
 /*
-Income from the wage
+Total wage
 */
 
-V("Trade");
 v[0]=0;
-CYCLE(cur2, "Supply")
- {
-  CYCLES(cur2, cur, "Firm")
-   {
-   CYCLES(cur, cur1, "Labor")
-    {
-     v[1]=VS(cur1,"wage");
-     v[2]=VS(cur1,"NumWorkers");
-     v[0]+=v[1]*v[2]; 
-    }
-   }
- }
-v[3]=0;
-CYCLE(cur, "Machinery")
-	{
-	CYCLES(cur, cur1, "KFirm")
-		{
-    		CYCLES(cur1, cur2, "KLabor")
-       {
-        v[5]=VS(cur2, "KNbrWorkers");
-    		  v[6]=VS(cur2, "KWage");
-        v[3]+=v[5]*v[6];
-       }
-    		v[7]=VS(cur1, "KNbrEngineers");
-    		v[8]=VS(cur1, "KWageEngineers");
-    		v[3]+=v[7]*v[8];
-		}
-	}
 
-RESULT((v[0]+v[3]) )
+CYCLE(cur, "Class")
+ {
+  v[0]+=VS(cur,"WageIncome");
+ }
+
+RESULT(v[0] )
+
+EQUATION("TotPremia")
+/*
+Total premia
+*/
+
+v[0]=0;
+
+CYCLE(cur, "Class")
+ {
+  v[0]+=VS(cur,"PremiaIncome");
+ }
+
+RESULT(v[0] )
+
+EQUATION("PayTime")
+/*
+Semaphore resetting the parameters collecting the incomes from employees before being computed
+*/
+V("Trade");
+CYCLE(cur, "Class")
+ {
+  WRITES(cur,"Individuals",0);
+  WRITES(cur,"WageIncome",0);
+  WRITES(cur,"PremiaIncome",0);
+ }
+
+RESULT(1)
+
+EQUATION("ShareIncome")
+/*
+Share of total income for this class
+*/
+
+v[0]=V("Income");
+v[1]=VS(p->up,"TotIncome");
+RESULT(v[0]/v[1] )
 
 
 EQUATION("ShareWageIncome")
 /*
-Divides the overall income across the classes, according to the different jobs, i.e. wage class
+Share of total wage for this class
 */
 
-v[7]=VS(p->up->up,"WageIncome");
-v[1]=V("NumClass");
-if(v[1]>0)
- { //if we are in one of the labour classes (not engineers)
-  v[4]=v[11]=0;
-  CYCLES(p->up->up, cur2, "Supply")
-   {
-    CYCLES(cur2, cur, "Firm")
-     { //cycle all firms
-      CYCLES(cur, cur1, "Labor")
-       { // determine the number of labor classes / layers
-        v[14]=VS(cur1,"IdLabor");
-        if(v[14]==v[1])
-         { // for the layer corresponding to the class under computation compute the income
-          v[2]=VS(cur1,"wage");
-          v[3]=VS(cur1,"NumWorkers");
-          v[4]+=v[2]*v[3];
-          v[11]+=v[3];
-         }
-       }
-     }
-   }
-  CYCLES(p->up->up, cur, "KFirm")
-   {
-    CYCLES(cur, cur1, "KLabor")
-     { // determine the number of labor classes / layers
-      v[15]=VS(cur1,"IdKLabor");
-      if(v[15]==v[1])
-       {
-        v[5]=VS(cur1,"KWage");
-        v[6]=VS(cur1,"KNbrWorkers");
-        v[4]+=v[5]*v[6];
-        v[11]+=v[6];
-       }
-     }
-   }
- }
-else
- {
-  v[4]=v[11]=0;
-  CYCLES(p->up->up, cur, "KFirm")
-   {
-    cur1=SEARCHS(cur,"KEngineers");
-    v[9]=VS(cur1,"KWageEngineers");
-    v[10]=VS(cur1,"KNbrEngineers");
-    v[4]+=v[9]*v[10];
-    v[11]+=v[10];
-   }
-
- }
-v[8]=v[4]/v[7];
-v[12]=v[11]-0.5;
-v[13]=round(v[12]);
-//WRITE("NumIterations",v[13]); to maintain the same individual demand to all firms. When "NumIterations" is kept fix, the individual demand, as the expenditure of the class increases, becomes 'groups' demand all to selected firms.
-
-RESULT(v[8] )
+v[0]=V("WageIncome");
+v[1]=VS(p->up,"TotWage");
+RESULT(v[0]/v[1] )
 
 
-EQUATION("NonWageIncome")
+EQUATION("SharePremiaIncome")
 /*
-Sum of earnings not included in to wages, such as wage premia
+Share of total premia for this class
 */
 
-v[2]=0;
-CYCLE(cur2, "Supply")
- {
-  CYCLES(cur2, cur, "Firm")
-   {
-    CYCLES(cur, cur1, "Labor")
-     {
-      v[1]=VS(cur1,"WagePrem");
-      v[2]+=v[1];
-     }
-   }
- }
-CYCLE(cur, "KFirm")
- {
-  CYCLES(cur, cur1, "KLabor")
-   {
-    v[3]=VS(cur1,"KWagePrem");
-    v[2]+=v[3];
-   }
- }
-
+v[0]=V("PremiaIncome");
+v[1]=VS(p->up,"TotPremia");
+if(v[1]==0)
+ v[2]=0;
+else
+ v[2]=v[0]/v[1]; 
 RESULT(v[2] )
 
-
-EQUATION("ShareNonWageIncome")
-/*
-Shre distributed to each class of wage premia
-*/
-
-v[1]=VS(p->up->up,"NonWageIncome");
-v[2]=V("NumClass");
-v[5]=0;
-if(v[2]>0)
- {
-  CYCLES(p->up->up, cur2, "Supply")
-   {
-    CYCLES(cur2, cur, "Firm")
-     {
-      CYCLES(cur, cur1, "Labor")
-       {
-        v[3]=VS(cur1,"IdLabor");
-        if(v[3]==v[2])
-         {
-          v[4]=VS(cur1,"WagePrem");
-          v[5]+=v[4];
-         }
-       }
-  
-     }
-   }
-  CYCLES(p->up->up, cur, "KFirm")
-   {
-    CYCLES(cur, cur1, "KLabor")
-     {
-      v[6]=VS(cur1,"IdKLabor");
-      if(v[6]==v[2])
-       {
-        v[7]=VS(cur1,"KWagePrem");
-        v[5]+=v[7];
-       }
-     }
-
-   }
- }
-if(v[1]>0)
- v[8]=v[5]/v[1];
-else
- v[8]=0;
-
-RESULT(v[8] )
 
 
 EQUATION("price")
@@ -1204,23 +1124,6 @@ else
  }
 
 RESULT(v[9] )
-
-
-EQUATION("ExpectedLCost")
-/*
-Labor cost without the reserve labour force
-*/
-
-v[0]=0;
-CYCLE(cur, "Labor")
- {
-  v[1]=VS(cur,"Workforce");
-  v[2]=VS(cur,"wage");
-  v[0]+=v[1]*v[2];
- }
-
-RESULT(v[0] )
-
 
 EQUATION("LaborCost")
 /*
@@ -1380,8 +1283,10 @@ RESULT((v[0]+1) );
 
 
 EQUATION("wage")
-V("NumWorkers");
-v[3]=VS(p->up,"IdFirm");
+/*
+Wage of the workers in this layer of the firm
+*/
+v[5]=V("NumWorkers");
 v[2]=V("IdLabor");
 if(v[2]==1)
  { // first tier workers
@@ -1391,12 +1296,13 @@ if(v[2]==1)
 else
  { // executives
   cur=SEARCH_CNDS(p->up,"IdLabor",v[2]-1);
-  v[4]=VS(cur->up,"IdFirm");
-  if(v[4]!=v[3])
-   INTERACT("Firms is different", v[4]);
   v[0]=VS(cur,"wage");
   v[1]=V("wagecoeff"); // wage coefficient as the wage tier multiplier
  }
+
+VS(p->hook,"PayTime");
+INCRS(p->hook,"Individuals",v[5]);
+INCRS(p->hook,"WageIncome",v[5]*v[0]);
 
 RESULT((v[0]*v[1]) )
 
@@ -1429,7 +1335,9 @@ if(v[5]>0)
     v[5]=VS(p->up,"CumProfit"); // cumulated profits after subtracting investment expenditures
     v[6]=v[4]*v[5]; // amount of profits to pay premia
     v[7]=v[6]*v[9]/v[3];
-    v[8]=INCRS(p->up,"CumProfit",-v[7]);
+    VS(p->hook,"PayTime");
+    INCRS(p->up,"CumProfit",-v[7]);
+    INCRS(p->hook,"PremiaIncome",v[7]);
    }
   else
    v[7]=0;
@@ -1438,8 +1346,6 @@ else
  v[7]=0;
 
 RESULT(v[7] )
-
-
 
 
 /****************************************************************/
@@ -2227,13 +2133,19 @@ v[10]=v[9]*v[8];
 v[6]=max(v[5],0);
 v[11]=min(v[10],v[6]);
 //v[12]=INCRS(p->up,"KCumProfit",-(v[11]*v[2]));
-
+VS(p->hook->up,"PayTime");
+INCRS(p->hook,"Individuals",v[11]);
 RESULT(v[11] )
 
 
 EQUATION("KWageEngineers")
+/*
+Wage of engineers
+*/
 v[0]=V("MinWage");
 v[1]=V("KEWagecoeff");
+VS(p->hook->up,"PayTime");
+INCRS(p->hook,"WageIncome",v[1]*v[0]);
 RESULT((v[0]*v[1]) )
 
 
@@ -2293,7 +2205,7 @@ EQUATION("KWage")
 /*
 Comment
 */
-V("KNbrWorkers");
+v[12]=V("KNbrWorkers");
 v[2]=V("IdKLabor");
 if(v[2]==1)
  {
@@ -2306,7 +2218,10 @@ else
   v[0]=VS(cur,"KWage");
   v[1]=V("KWagecoeff"); // wage coefficient as the wage tier multiplier
  }
- 
+VS(p->hook,"PayTime");
+INCRS(p->hook,"Individuals",v[12]);
+INCRS(p->hook,"WageIncome",v[12]*v[0]*v[1]);
+
 RESULT((v[0]*v[1]) )
 
 
@@ -2338,7 +2253,8 @@ if(v[5]>0)
     v[6]=(1-v[11])*v[5]; // amount of cumulated profits to pay premia
     v[7]=v[6]*v[9]/v[3]; // amount of premium to this class of workers
     v[8]=INCRS(p->up,"KCumProfit",-v[7]);
-    
+    VS(p->hook,"PayTime");
+    INCRS(p->hook,"PremiaIncome",v[7]);
    }
   else
    v[7]=0;
@@ -2399,10 +2315,11 @@ else
      { /// if there is still not a class for the new tyoe of wage earner create one
       cur2=SEARCH_CNDS(p->up->up->up,"NumClass",v[18]);
       cur3=ADDOBJS_EX(cur2->up,"Class",cur2);
+      cur1->hook=cur3;
       WRITES(cur3,"NumClass",v[18]+1);
       WRITELS(cur3,"Expenditure",0, t-1);
       WRITELS(cur3,"ShareWageIncome",0, t-1);
-      WRITELS(cur3,"ShareNonWageIncome",0, t-1);
+      WRITELS(cur3,"SharePremiaIncome",0, t-1);
       //WRITELS(cur3,"ShareProfitIncome",0, t-1);
       WRITELS(cur3,"Savings",0, t-1);
       // WRITELS(cur3,"NumIterations",0, t-1); to reactivate when NumIterations report the number of consumers in the labour class, as given in equation "ShareWageIncome". Otherwise the number of iterations simply define the number of representative conusmers (groups) in a class
@@ -2410,7 +2327,6 @@ else
       WRITES(cur3,"Individuals",v[20]); // set the number of individuals to nu;ber of workers of the new class
       v[35]=VS(cur2,"LorenzInd"); 
       WRITES(cur3,"LorenzInd",v[35]+v[20]); // set total number of workers as previous total plus new workers
-      WRITELS(cur3,"SavingsTot",0, t-1); // set the total savings to 0
       WRITELS(cur3,"NoConsumption",0, t-1); // set the available income due to unavailability of goods to 0
       CYCLES(cur3, cur, "Need")
        { // enter in neds and characterisitcs to change the tau parameter (the minimum is set every period)
@@ -2444,9 +2360,12 @@ else
 
        }
      v[35]=VS(cur3,"ComputeShare"); // set the expenditure shares for the needs in the new class
-     
-     
      }
+    else
+     {
+      cur3=SEARCH_CND("NumClass",v[18]+1);
+      cur1->hook=cur3;
+     } 
    }
   if(v[18]>2 && v[19]<v[21])
    v[6]=0;
@@ -3019,13 +2938,17 @@ CYCLE(cur4, "Supply")
      { //check how many tiers already exist
       v[15]++;
      }
+
     CYCLES(cur1, cur, "Labor")
      {
-      v[14]=V("IdLabor");
+      v[14]=VS(cur,"IdLabor");
+      cur3=SEARCH_CND("NumClass",v[14]);
+      cur->hook=cur3;
       if(v[14]==1)
        { // compute the first tier workers given their productivity and production needs
         //V("aNWDynamic");
         //v[0]=VL("NumWorkers",1);
+
         v[1]=VLS(cur1,"ExpectedSales",1); //use the value of expected sales to compute the number of workers in the initial period
         //v[1]=VS(cur1,"DesiredQ");
         //v[10]=V("backlog");
@@ -3132,12 +3055,17 @@ CYCLE(cur, "KFirm")
  {
   CYCLES(cur, cur1, "KLabor")
    {
+    v[30]=VS(cur1,"IdKLabor");
+    cur3=SEARCH_CND("NumClass",v[30]);
+    cur1->hook=cur3;
     v[4]=VS(cur1,"KNbrWorkers");
     v[5]=VLS(cur1,"KNbrWorkers",1);
     v[3]+=v[4];
     v[8]+=v[5];
    }
   cur2=SEARCHS(cur,"KEngineers");
+  cur3=SEARCH_CND("NumClass",0);
+  cur2->hook=cur3;  
   v[6]=VS(cur2,"KNbrEngineers");
   v[7]=VLS(cur2,"KNbrEngineers",1);
   v[3]+=v[6];
@@ -3497,17 +3425,14 @@ EQUATION("IncomeDistribution")
 /*
 Herfindahl Index for the Income
 */
-v[0]=V("WageIncome");
-v[1]=V("NonWageIncome");
 v[2]=0;
 v[3]=0;
 v[4]=0;
 CYCLE(cur, "Class")
  {
   v[5]=VS(cur,"ShareWageIncome");
-  v[6]=VS(cur,"ShareNonWageIncome");
-  v[7]=(v[5]*v[0])+(v[6]*v[1]);
-  v[8]=v[7]/(v[0]+v[1]);
+  v[6]=VS(cur,"SharePremiaIncome");
+  v[8]=v[5]+v[6];
   v[2]+=(v[8]*v[8]);
   v[3]+=(v[5]*v[5]);
   v[4]+=(v[6]*v[6]);
@@ -3549,15 +3474,15 @@ v[10]=(double)t;
 if(v[10]>1)
  {
   v[5]=v[6]=v[9]=0;
-  v[4]=VL("NonWageIncome",1);
-  v[11]=VL("WageIncome",1);
+  v[4]=V("TotPremia");
+  v[11]=V("TotWage");
   CYCLE(cur, "Demand")
    {
     SORTS(cur,"Class","ShareIncome", "UP");
     CYCLES(cur, cur1, "Class")
      {
-      v[1]=VLS(cur1,"ShareWageIncome",1);
-      v[2]=VLS(cur1,"ShareNonWageIncome",1);
+      v[1]=VS(cur1,"ShareWageIncome");
+      v[2]=VS(cur1,"SharePremiaIncome");
       v[12]=(v[1]*v[11])/(v[4]+v[11]);
       v[13]=(v[2]*v[4])/(v[4]+v[11]);
       v[3]=(v[12]+v[13]);
@@ -3575,81 +3500,6 @@ if(v[10]>1)
 
 RESULT(v[5] )
 
-
-EQUATION("ShareIncome")
-/*
-Share of income for each individual
-*/
-
-v[5]=v[8]=0;
-v[1]=VL("ShareWageIncome",1);
-v[2]=VL("ShareNonWageIncome",1);
-v[11]=VLS(p->up->up,"WageIncome",1);
-v[12]=VLS(p->up->up,"NonWageIncome",1);
-v[13]=(v[1]*v[11])/(v[11]+v[12]);
-v[14]=(v[2]*v[12])/(v[11]+v[12]);
-v[4]=V("NumClass");
-if(v[4]==0)
- {
-  CYCLES(p->up->up, cur, "Machinery")
-   {
-    CYCLES(cur, cur1, "KFirm")
-     {
-      cur2=SEARCHS(cur1,"KEngineers");
-      v[5]+=VLS(cur2,"KNbrEngineers",1);
-     }
-   } 
-  if(v[5]>0)
-   v[3]=(v[13]+v[14])/v[5];
-  else
-   v[3]=0;
-  WRITE("Individuals",v[5]);
- }
-else
- {
-  CYCLES(p->up->up, cur, "Supply")
-   {
-    CYCLES(cur, cur1, "Firm")
-     {
-      CYCLES(cur1, cur2, "Labor")
-       {
-        v[6]=VS(cur2,"IdLabor");
-        if(v[6]==v[4])
-         {
-          v[7]=VLS(cur2,"NumWorkers",1);
-          v[8]+=v[7];
-         }
-       }
-
-     }
-
-   }
-  CYCLES(p->up->up, cur, "Machinery")
-   {
-    CYCLES(cur, cur1, "KFirm")
-     {
-      CYCLES(cur1, cur2, "KLabor")
-       {
-        v[9]=VS(cur2,"IdKLabor");
-        if(v[9]==v[4])
-         {
-          v[10]=VLS(cur2,"KNbrWorkers",1);
-          v[8]+=v[10];
-         }
-                  
-       }
-
-     }
-
-   }
-  WRITE("Individuals",v[8]);
-  if(v[8]>0)
-   v[3]=(v[13]+v[14])/v[8];
-  else
-   v[3]=0;
- }
-
-RESULT(v[3] )
 
 
 EQUATION("TotIndividuals")
@@ -3681,10 +3531,9 @@ v[5]=(double)t;
 if(v[5]>1)
  {
   V("ShareIncome");
-  v[1]=VL("WageIncome",1);
-  v[2]=VL("NonWageIncome",1);
+  v[1]=V("TotIncome");
   v[3]=V("TotIndividuals");
-  v[4]=(v[1]+v[2])/v[3];
+  v[4]=(v[1])/v[3];
  }
 else
  v[4]=1;
@@ -3695,6 +3544,7 @@ RESULT(v[4] )
 EQUATION("Atkinson")
 /*
 Atkinson index of inequality for income in period t-1
+A=1-{SUM_i[y_i**(1-e)]**(1/(1-e))}/Av.y
 */
 
 v[16]=(double)t;
@@ -3703,20 +3553,19 @@ if(v[16]>1)
   v[10]=0;
   v[6]=V("AvIncome");
   v[8]=V("Aversion"); // parmeter for the aversion to inequality (changes which end of the income distribution has a higher weight in the index computation)
+  v[11]=V("TotIndividuals");
   CYCLE(cur, "Demand")
    {
     CYCLES(cur, cur1, "Class")
      {
-      v[1]=VS(cur1,"ShareIncome");
+      v[1]=VS(cur1,"Income");
       if(v[1]>0)
        {
-        v[2]=VL("WageIncome",1);
-        v[3]=VL("NonWageIncome",1);
         v[4]=VS(cur1,"Individuals");
-        v[5]=v[1]*(v[2]+v[3]); 
-        v[7]=v[1]/v[6]; // relation with average income
-        v[9]=pow(v[5],(1-v[8]));
-        v[17]=v[9]*v[4]; // sum of incomes for the whole class
+        v[5]=VS(cur1,"Income"); 
+        v[7]=v[5]/v[4]; // av. income of the class
+        v[9]=pow(v[7],(1-v[8]));
+        v[17]=v[9]*VS(cur1, "ShareIncome");
        }
       else
        v[17]=0;
@@ -3724,8 +3573,8 @@ if(v[16]>1)
      }
   
    }
-  v[11]=V("TotIndividuals");
-  v[12]=v[10]/v[11];
+  
+  v[12]=v[10];
   v[13]=1/(1-v[8]);
   v[14]=pow(v[12],v[13]);
   v[15]=1-v[14]/v[6];
@@ -3734,7 +3583,6 @@ else
  v[15]=0;
 
 RESULT(v[15] )
-
 
 EQUATION("Gini")
 /*
@@ -3747,15 +3595,16 @@ if(v[20]>1)
 CYCLE(cur, "Demand")
  {
   v[14]=v[21]=0;
+  v[2]=VS(cur,"TotWage");
+  v[3]=VS(cur,"TotPremia");
+
   CYCLES(cur, cur1, "Class")
    {
     v[1]=VS(cur1,"ShareIncome");
     if(v[1]>0)
      {
-      v[2]=VL("WageIncome",1);
-      v[3]=VL("NonWageIncome",1);
       v[22]=VLS(cur1,"ShareWageIncome",1);
-      v[23]=VLS(cur1,"ShareNonWageIncome",1);
+      v[23]=VLS(cur1,"SharePremiaIncome",1);
       v[24]=v[22]*v[2];
       v[25]=v[23]*v[3];
       v[5]=VS(cur1,"Individuals");
@@ -3771,7 +3620,7 @@ CYCLE(cur, "Demand")
           if(v[9]>0)
            {
             v[26]=VLS(cur2,"ShareWageIncome",1);
-            v[27]=VLS(cur2,"ShareNonWageIncome",1);
+            v[27]=VLS(cur2,"SharePremiaIncome",1);
             v[28]=v[26]*v[2];
             v[29]=v[27]*v[3];
             v[11]=VS(cur2,"Individuals");
@@ -4619,7 +4468,9 @@ Activate the equation for income distribution HI, Lorenz curve
 */
 
 CYCLE(cur, "Country")
- {
+ {VS(cur,"AvProfit");
+  VS(cur,"Trade");
+  VS(cur,"Production");
   cur1=SEARCHS(cur,"Demand");
   VS(cur1,"IncomeDistribution");
   VS(cur,"Andre");
@@ -5123,22 +4974,6 @@ v[4]=v[2]/v[3];
 
 RESULT(v[4] )
 
-
-EQUATION("Av_NonWageIncome")
-/*
-Average of the total incom from wage
-*/
-
-v[2]=v[3]=0;
-CYCLE(cur, "Country")
- {
-  v[1]=VS(cur,"NonWageIncome");
-  v[2]+=v[1];
-  v[3]++;
- }
-v[4]=v[2]/v[3];
-
-RESULT(v[4] )
 
 
 EQUATION("Av_HerfInd1")
