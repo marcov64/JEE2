@@ -332,6 +332,7 @@ EQUATION("Production")
 After trading fix any remaining variable to compute
 */
 
+v[0]=v[1]=0;
 CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
@@ -340,11 +341,30 @@ CYCLE(cur, "Supply")
     VS(cur1,"InvestmentDecision");
     CYCLES(cur1, cur2, "Labor")
      {
-      VS(cur2,"WagePrem");
-      VS(cur2,"Workforce");      
+      v[0]+=VS(cur2,"WagePrem");
+      v[4]=VS(cur2,"NumWorkers");
+      v[2]=VS(cur2,"wage");
+      v[1]+=v[2]*v[4];     
      }
    }
  }
+CYCLE(cur, "KFirm")
+ {
+  CYCLES(cur, cur1, "KLabor")
+   {
+    v[4]=VS(cur1,"KWage");
+    v[2]=VS(cur1,"KWagePrem");
+    v[3]=VS(cur1,"KNbrWorkers");
+    v[0]+=v[2];
+    v[1]+=v[3]*v[4];
+    
+   }
+
+ }
+ v[5]=V("TotPremia");
+ v[6]=V("TotWage");
+ if(v[5]!=v[0] || v[6]!=v[1])
+  INTERACT("Failed income",v[1]);
 RESULT(1 )
 
 
@@ -706,6 +726,7 @@ else
      { //starting from the second class (the first are engineers), if it does not exist a class that represnt the new layer of executives, create it
       cur2=SEARCH_CNDS(p->up->up->up,"NumClass",v[18]);
       cur3=ADDOBJS_EX(cur2->up,"Class",cur2);
+      cur1->hook=cur3;
       WRITES(cur3,"NumClass",v[18]+1);
       WRITELS(cur3,"Expenditure",0, t-1);
       WRITELS(cur3,"ShareWageIncome",0, t-1);
@@ -751,7 +772,7 @@ else
 
        }
      v[35]=VS(cur3,"ComputeShare"); // set the distribution of expenditure shares across needs for the new class
-     cur1->hook=cur3;
+     
      }
     else
      {
@@ -901,7 +922,9 @@ EQUATION("Expenditure")
 Total money spent by consumers, computed as a combination of past consumption and available resources (from wages and stock options)
 */
 v[0]=VL("Expenditure",1);
-v[1]=VL("Income",1);
+v[3]=VL("ShareIncome",1);
+v[4]=V("ExIncome");
+v[1]=VL("Income",1)+v[3]*v[4];
 v[11]=V("Savings");
 v[12]=V("NoConsumption");
 v[2]=V("aEx");

@@ -647,8 +647,8 @@ Var: MinWage 1 n + n n	1
 Var: AggProductivity 1 s + n n	1
 Func: TTB_multiplWinner 0 n + n n
 Var: TotUSales 0 n + n n
-Var: AvPrice 1 n + n n	1
-Var: Inflation 1 n + n n	2
+Var: AvPrice 1 s + n n	1
+Var: Inflation 1 s + n n	2
 Var: MovAvAggProd 1 n + n n	1
 Param: aAgProd 0 n + n n	0.05
 Var: NbrWorkers 1 s + n n	5
@@ -695,7 +695,7 @@ Var: MinimumPriceSet 0 n + n n
 Var: Andre 0 n + n n
 Param: tauMax 0 n + n n	0.9
 Param: tauMin 0 n + n n	0.1
-Var: AvIncome 0 n + n n
+Var: AvIncome 0 s + n n
 Var: Atkinson 0 s + n n
 Param: Aversion 0 n + n n	0.5
 Param: Gini 0 n + n n	-2
@@ -782,7 +782,7 @@ Param: betaProd 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	
 Param: betaTime 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: aNW 0 n + n n	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9
 Var: NumWorkersFirm 0 n + n n
-Param: ConstPrice 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Param: ConstPrice 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: product 0 n + n n	5	1	8	6	10	4	7	1	8	7	4	7	9	6	7	3	3	8	8	10	1	3	9	3	6	4	3	5	9	9	1	10	7	8	1	4	5	10	10	10	4	8	1	4	3	10	3	7	2	8	5	10	8	3	1	6	5	1	5	6	5	4	10	8	6	6	6	7	10	2	9	9	6	6	1	3	8	6	9	8	3	1	9	6	9	1	1	7	1	3	6	7	5	5	5	7	6	1	4	2
 Var: RdExpenditure 0 n + n n
 Var: ExploreSector 0 n + n n
@@ -855,27 +855,27 @@ Param: HerfWageIncome 0 n + n n	0
 Param: HerfNonWageIncome 0 n + n n	0
 Param: eta 0 n + n n	3
 Var: PayTime 0 n + n n
-Var: TotWage 0 n + n n
-Var: TotPremia 0 n + n n
-Var: TotIncome 0 n + n n
-Var: TotIndividuals 0 n + n n
+Var: TotWage 0 s + n n
+Var: TotPremia 0 s + n n
+Var: TotIncome 0 s + n n
+Var: TotIndividuals 0 s + n n
 
 Object: Class C	3
 Param: NumClass 0 n + n n	0	1	2
-Var: Expenditure 1 n + n n	1	1	1
+Var: Expenditure 1 n + n n	100	100	100
 Var: ShareWageIncome 1 n + n n	0.33	0.33	0.33
 Param: aEx 0 n + n n	0.8	0.8	0.8
 Var: SharePremiaIncome 1 n + n n	0	0	1
 Param: Savings 1 n + n n	0	0	0
 Param: Lorenz 0 n + n n	0	0	0
-Var: ShareIncome 0 n + n n
+Var: ShareIncome 1 n + n n	0.33	0.33	0.33
 Param: Individuals 0 n + n n	0	0	0
 Param: LorenzInd 0 n + n n	0	0	0
 Func: ComputeShare 0 n + n n
 Param: NoConsumption 0 n + n n	0	0	0
 Var: TotIterations 0 n + n n
 Param: ShareExIncome 0 n + n n	0.33	0.33	0.33
-Var: Income 1 n + n n	100	100	100
+Var: Income 1 s + d n	100	100	100
 Param: PremiaIncome 0 n + n n	0	0	0
 Param: WageIncome 1 s + n n	0	0	0
 
@@ -2468,7 +2468,7 @@ END_DESCRIPTION
 Parameter_ConstPrice
 (no description available)
 _INIT_
- All 10 instances equal to 0.
+ All 100 instances equal to 1.
 END_DESCRIPTION
 
 Parameter_product
@@ -2944,7 +2944,7 @@ Share of income for each individual
 
 'ShareIncome' appears in the equation for: NumWorkers, KNbrWorkers, Andre, TotIndividuals, AvIncome, Atkinson, Gini.
 _INIT_
-
+ All 3 instances equal to 0.33.
 END_DESCRIPTION
 
 Parameter_Individuals
