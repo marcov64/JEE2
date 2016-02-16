@@ -51,6 +51,7 @@ if(RND>v[0])
 
 v[1]=VS(c,"IdGood");
 cur1=ADDOBJ("Firm");
+WRITELS(cur1,"Age",0, t);
 WRITELS(cur1,"Visibility",0.01, t);
 WRITES(cur1,"IdFirm",V("CounterIdFirm"));
 WRITES(cur1,"product",v[1]);
@@ -82,7 +83,7 @@ Remove firms with too poor Health
 
 v[0]=VS(c,"IdGood");
 v[2]=VS(c,"minHealth");
-v[4]=0;
+v[4]=v[5]=0;
 CYCLE_SAFE(cur, "Firm")
  {
   v[1]=VS(cur,"product");
@@ -91,13 +92,16 @@ CYCLE_SAFE(cur, "Firm")
    {
     v[3]=VS(cur,"Health");
     if(v[3]<v[2])
-     {
+     {v[5]+=VS(cur,"Age");
       v[4]++;
       DELETE(cur);
      }
    }
  }
-
+if(v[4]>0)
+ WRITE("AvAgeDeath",v[5]/v[4]);
+else
+ WRITE("AvAgeDeath",0); 
 RESULT(v[4] )
 
 EQUATION("Demography")
@@ -332,19 +336,22 @@ EQUATION("Production")
 After trading fix any remaining variable to compute
 */
 
-v[0]=v[1]=0;
+v[0]=v[1]=v[5]=v[6]=0;
 CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
    {
     VS(cur1,"Profit");
     VS(cur1,"InvestmentDecision");
+    v[5]+=VS(cur1,"Age");
+    v[6]++;
     CYCLES(cur1, cur2, "Labor")
      {
       v[0]+=VS(cur2,"WagePrem");
       v[4]=VS(cur2,"NumWorkers");
       v[2]=VS(cur2,"wage");
       v[1]+=v[2]*v[4];     
+      //INCRS(cur2->hook,"tempWage",v[2]*v[4]);
      }
    }
  }
@@ -357,14 +364,18 @@ CYCLE(cur, "KFirm")
     v[3]=VS(cur1,"KNbrWorkers");
     v[0]+=v[2];
     v[1]+=v[3]*v[4];
-    
+    //INCRS(cur1->hook,"tempWage",v[3]*v[4]);
    }
-
  }
+/* 
  v[5]=V("TotPremia");
  v[6]=V("TotWage");
  if(v[5]!=v[0] || v[6]!=v[1])
-  INTERACT("Failed income",v[1]);
+  {
+   INTERACT("Failed income",v[1]);
+  } 
+*/
+WRITE("AvAge",v[5]/v[6]);
 RESULT(1 )
 
 
@@ -581,10 +592,11 @@ Raise price for positive backlog and reduce it to normal levels otherwise
 v[0]=V("Stocks"); //here it is computed the backlog
 v[1]=V("backlog");
 v[2]=V("Q");
+v[4]=V("coefMarkupVar");
 if(v[1]==0 || v[2]==0 )
  v[3]=1+V("minMarkup");//normal level of markup
 else
- v[3]=1+V("minMarkup")+log(1+v[1]/v[2]);
+ v[3]=1+V("minMarkup")+v[4]*log(1+v[1]/v[2]);
 
 //v[3]=1+V("minMarkup");//normal level of markup
 RESULT(v[3])
@@ -986,6 +998,7 @@ CYCLE(cur, "Class")
   WRITES(cur,"Individuals",0);
   WRITES(cur,"WageIncome",0);
   WRITES(cur,"PremiaIncome",0);
+  WRITES(cur,"tempWage",0);
  }
 
 RESULT(1)
@@ -1325,7 +1338,7 @@ else
 
 VS(p->hook,"PayTime");
 INCRS(p->hook,"Individuals",v[5]);
-INCRS(p->hook,"WageIncome",v[5]*v[0]);
+INCRS(p->hook,"WageIncome",v[5]*v[0]*v[1]);
 
 RESULT((v[0]*v[1]) )
 
@@ -2555,6 +2568,13 @@ CYCLE(cur1, "Supply")
 
 RESULT(v[3] )
 
+EQUATION("Age")
+/*
+Age of the firm
+*/
+
+RESULT(CURRENT+1 )
+
 
 EQUATION("MovAvPrice")
 /*
@@ -3581,11 +3601,10 @@ if(v[16]>1)
    {
     CYCLES(cur, cur1, "Class")
      {
-      v[1]=VS(cur1,"Income");
-      if(v[1]>0)
+      v[4]=VS(cur1,"Individuals");
+      v[5]=VS(cur1,"Income"); 
+      if(v[5]>0 && v[4]>0.01)
        {
-        v[4]=VS(cur1,"Individuals");
-        v[5]=VS(cur1,"Income"); 
         v[7]=v[5]/v[4]; // av. income of the class
         v[9]=pow(v[7],(1-v[8]));
         v[17]=v[9]*VS(cur1, "ShareIncome");
