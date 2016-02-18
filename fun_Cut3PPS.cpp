@@ -51,6 +51,7 @@ if(RND>v[0])
 
 v[1]=VS(c,"IdGood");
 cur1=ADDOBJ("Firm");
+cur1->hook=c;
 WRITELS(cur1,"Age",0, t);
 WRITELS(cur1,"Visibility",0.01, t);
 WRITES(cur1,"IdFirm",V("CounterIdFirm"));
@@ -2977,6 +2978,9 @@ CYCLE(cur4, "Supply")
   CYCLES(cur4, cur1, "Firm")
    {// run a first cycle trough firms to set the number of labor in t-1
     v[15]=0;
+    v[16]=VS(cur1,"product");
+    cur5=SEARCH_CND("IdGood",v[16]);
+    cur1->hook=cur5;
     CYCLES(cur1,cur, "Labor")
      { //check how many tiers already exist
       v[15]++;
@@ -3696,12 +3700,18 @@ Nominal GDP, at varying prices
 */
 
 v[4]=0;
+v[8]=v[9]=v[10]=0;
 CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
    {
     v[1]=VS(cur1,"Revenues");
     v[4]+=v[1];
+    v[5]=VS(cur1,"UnitSales");
+    v[6]=VS(cur1,"ConstPrice");
+    v[7]=v[5]*v[6];
+    v[8]+=v[7];
+    v[9]+=v[7];
    }
 
  }
@@ -3711,107 +3721,18 @@ CYCLE(cur, "Machinery")
    {
     v[5]=VS(cur1,"KProductionFlow");
     v[6]=VS(cur1,"KPrice");
-    v[7]=v[5]*v[6];
-    v[4]+=v[7];
+    v[11]=VS(cur1,"KConstPrice");    
+    v[8]+=v[6]*v[5];
+    v[10]+=v[11]*v[5];
    }
 
  }
 
+WRITE("GdpConstant",v[8]);
+WRITE("GdpConstantF",v[9]);
+WRITE("GdpConstantK",v[10]);
 RESULT(v[4] )
 
-
-EQUATION("GdpConstant")
-/*
-GDP at constant prices
-*/
-
-v[1]=V("IndexYear");
-v[2]=(double)t;
-if(v[1]==v[2])
- {
-  CYCLE(cur, "Supply")
-   {
-    CYCLES(cur, cur1, "Firm")
-     {
-      v[3]=VS(cur1,"price");
-      WRITES(cur1,"ConstPrice",v[3]);
-     }
-
-   }
-  CYCLE(cur, "Machinery")
-   {
-    CYCLES(cur, cur1, "KFirm")
-     {
-      v[4]=VS(cur1,"KPrice");
-      WRITES(cur1,"KConstPrice",v[4]);
-     }
-
-   }
-
-
- }
-if(v[1]<v[2])
- {
-  v[8]=0;
-  CYCLE(cur, "Supply")
-   {
-    CYCLES(cur, cur1, "Firm")
-     {
-      v[5]=VS(cur1,"UnitSales");
-      v[6]=VS(cur1,"ConstPrice");
-      v[7]=v[5]*v[6];
-      v[8]+=v[7];
-     }
-
-   }
-  CYCLE(cur, "Machinery")
-   {
-    CYCLES(cur, cur1, "KFirm")
-     {
-      v[9]=VS(cur1,"KProductionFlow");
-      v[10]=VS(cur1,"KConstPrice");
-      v[11]=v[9]*v[10];
-      v[8]+=v[11];
-     }
-
-   }
-
-
- }
-else
- v[8]=V("GdpNominal"); 
-
-RESULT(v[8] )
-
-
-EQUATION("GdpConstantF")
-/*
-GDP at constant prices in the final sector
-*/
-
-v[1]=V("IndexYear");
-v[2]=(double)t;
-V("GdpConstant");
-if(v[1]<v[2])
- {
-  v[8]=0;
-  CYCLE(cur, "Supply")
-   {
-    CYCLES(cur, cur1, "Firm")
-     {
-      v[5]=VS(cur1,"UnitSales");
-      v[6]=VS(cur1,"ConstPrice");
-      v[7]=v[5]*v[6];
-      v[8]+=v[7];
-     }
-
-   }
-
- }
-else
- v[8]=V("GdpNominal"); 
-
-RESULT(v[8] )
 
 
 EQUATION("GdpConstantK")
@@ -3966,13 +3887,36 @@ RESULT(v[4] )
 EQUATION("Avx")
 /*
 Average value of the quality characteristic (non price characteristic that is not price)
+
+Compute also all the statistics for sectors.
 */
 
 v[3]=v[4]=0;
+
+CYCLE(cur, "Sectors")
+ {
+  WRITES(cur,"AvxS",0);
+  WRITES(cur,"SUnitSales",0);
+  WRITES(cur,"SQ",0); 
+  WRITES(cur,"SRevenues",0);   
+  WRITES(cur,"SProfits",0);
+  WRITES(cur,"SNumFirms",0); 
+  WRITES(cur,"SMonetarySales",0); 
+  WRITES(cur,"maxXS",0);    
+ }
+
 CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
    {
+    INCRS(cur1->hook, "SUnitSales", VS(cur1,"UnitSales"));
+    INCRS(cur1->hook, "SQ", VS(cur1,"Q"));
+    INCRS(cur1->hook, "SRevenues", VS(cur1,"Revenues"));
+    INCRS(cur1->hook, "SProfits", VS(cur1,"Profit"));
+    INCRS(cur1->hook, "SMonetarySales", VS(cur1,"MonetarySales"));
+    INCRS(cur1->hook, "SNumFirms", 1);    
+    WRITES(cur1,"MsSector",VS(cur1, "MonetarySales"));
+
     CYCLES(cur1, cur2, "PNeed")
      {
       CYCLES(cur2, cur3, "Ch")
@@ -3981,6 +3925,10 @@ CYCLE(cur, "Supply")
         if(v[1]>1)
          { // to make it simple i assume that the first charateristic is price, this should be generalised
           v[2]=VS(cur3,"x");
+          INCRS(cur1->hook, "AvxS", v[2]);
+          v[5]=VS(cur1->hook,"maxXS");
+          if(v[2]>v[5])
+           WRITES(cur1->hook,"maxXS",v[2]);
           v[3]+=v[2];
           v[4]++;
          }
@@ -3991,6 +3939,31 @@ CYCLE(cur, "Supply")
    }
 
  }
+
+CYCLE(cur1, "Firm")
+ {
+  v[20]=VS(cur1->hook,"SMonetarySales");
+  v[21]=VS(cur1,"MsSector");
+  
+  if(v[20]>0)
+   v[23]=v[21]/v[20];
+  else
+   v[23]=0; 
+  WRITES(cur1,"MsSector",v[23]);
+  INCRS(cur1->hook,"SInvHerf",v[23]*v[23]);
+
+ }
+
+CYCLE(cur1, "Sectors")
+ {
+  v[26]=VS(cur1,"SNumFirms");
+  if(v[26]>0)
+   MULTS(cur1,"AvxS",1/v[26]);
+  v[27]=VS(cur1,"SInvHerf");
+  if(v[27]>0);
+   WRITES(cur1,"SInvHerf",1/v[27]); 
+ }
+
 v[5]=v[3]/v[4];
 
 RESULT(v[5] )
