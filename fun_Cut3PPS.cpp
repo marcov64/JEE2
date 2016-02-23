@@ -45,10 +45,6 @@ EQUATION("Entry")
 Entry of new firms, function triggered by SectorEntry
 */
 
-v[0]=VS(c,"probEntry");
-if(RND>v[0])
- END_EQUATION(0);
-
 v[1]=VS(c,"IdGood");
 cur1=ADDOBJ("Firm");
 cur1->hook=c;
@@ -77,42 +73,64 @@ WRITELS(cur1,"CumProfit",v[10]*v[11],t);
 RESULT( 1)
 
 
+EQUATION("ClearExitRecord")
+/*
+Prepare the computation of the exit record
+*/
+
+CYCLE(cur, "Sectors")
+ {
+  WRITES(cur,"numExit",0);
+  WRITES(cur,"AvAgeDeath",0);
+ }
+
+RESULT(1 )
+
 EQUATION("Exit")
 /*
 Remove firms with too poor Health
 */
 
-v[0]=VS(c,"IdGood");
-v[2]=VS(c,"minHealth");
-v[4]=v[5]=0;
+V("ClearExitRecord");
+v[4]=0;
 CYCLE_SAFE(cur, "Firm")
  {
-  v[1]=VS(cur,"product");
+
   v[6]=VS(cur,"Waiting");
-  if(v[1]==v[0] && v[6]==0) //don't kill firms waiting for a capital good to be delivered.
+  if(v[6]==0) //don't kill firms waiting for a capital good to be delivered.
    {
+    v[2]=VS(cur->hook,"minHealth");
     v[3]=VS(cur,"Health");
     if(v[3]<v[2])
-     {v[5]+=VS(cur,"Age");
-      v[4]++;
+     {v[5]=VS(cur,"Age");
+      INCRS(cur->hook,"AvAgeDeath",v[5]);
+      INCRS(cur->hook,"numExit",1);      
       DELETE(cur);
+      v[4]++;
      }
    }
  }
-if(v[4]>0)
- WRITE("AvAgeDeath",v[5]/v[4]);
-else
- WRITE("AvAgeDeath",0); 
+
 RESULT(v[4] )
 
 EQUATION("Demography")
 /*
 Comment
 */
-v[0]=V("Exit");
-INCR("NFirmsS",-v[0]);
-v[1]=V("Entry");
-INCR("NFirmsS",v[1]);
+cur=SEARCHS(p->up,"Supply");
+
+
+VS(cur,"Exit");
+v[3]=V("numExit");
+INCR("NFirmsS",-v[3]);
+if(v[3]>0)
+ MULT("AvAgeDeath",1/v[3]);
+
+v[4]=V("probEntry");
+if(RND<v[4])
+ { v[1]=VS_CHEAT(cur,"Entry",p);
+   INCR("NFirmsS",v[1]);
+ }
 RESULT( 1)
 
 
@@ -346,19 +364,22 @@ CYCLE(cur, "Supply")
     VS(cur1,"InvestmentDecision");
     v[5]+=VS(cur1,"Age");
     v[6]++;
-    CYCLES(cur1, cur2, "Labor")
+    CYCLE_SAFES(cur1, cur2, "Labor")
      {
       v[0]+=VS(cur2,"WagePrem");
       v[4]=VS(cur2,"NumWorkers");
       v[2]=VS(cur2,"wage");
       v[1]+=v[2]*v[4];     
       //INCRS(cur2->hook,"tempWage",v[2]*v[4]);
+      if(v[4]==0 && VS(cur2,"IdLabor")!=1)
+       DELETE(cur2);
+               
      }
    }
  }
 CYCLE(cur, "KFirm")
  {
-  CYCLES(cur, cur1, "KLabor")
+  CYCLE_SAFES(cur, cur1, "KLabor")
    {
     v[4]=VS(cur1,"KWage");
     v[2]=VS(cur1,"KWagePrem");
@@ -366,6 +387,8 @@ CYCLE(cur, "KFirm")
     v[0]+=v[2];
     v[1]+=v[3]*v[4];
     //INCRS(cur1->hook,"tempWage",v[3]*v[4]);
+    if(v[4]==0 && VS(cur2,"IdKLabor")!=1)
+      DELETE(cur2);
    }
  }
 /* 
@@ -575,6 +598,7 @@ if(v[2]<-0.001)
  INTERACT("Neg.bl",v[7]);
  
 v[22]=0;
+/*
 CYCLE(cur, "blItem")
  {
   v[22]+=VS(cur,"blQ");
@@ -582,6 +606,7 @@ CYCLE(cur, "blItem")
 if(abs(v[22]-v[2])>0.001)
   INTERACT("DiffSum",v[22]);
 v[2]=v[22];  
+*/
 RESULT(v[2] )
 
 EQUATION("markup")
@@ -700,12 +725,11 @@ if(v[14]==1)
   v[1]=V("DesiredQ");
   //v[10]=V("backlog");
   //v[11]=v[1]+v[10];
+  v[2]=V("MaxLaborProductivity");
   v[8]=V("CapitalCapacity");
   v[9]=min(v[1],v[8]);
-  v[2]=VL("MaxLaborProductivity",1);
+  //v[2]=VL("MaxLaborProductivity",1);
   v[4]=V("DesiredUnusedCapacity");
-  v[12]=VL("SkillIntensity",1); 
-  v[7]=v[2]/v[12]; // suppressed for the moment the use of skill bias, which should become a continuous variable, rather than a dummy
   v[3]=v[4]*(v[9]/v[2]);
   v[5]=V("aNW");
   v[6]=v[0]*v[5]+(1-v[5])*v[3]; // number of workers in the first layer
@@ -950,6 +974,26 @@ WRITE("Savings",v[8]); // saving are first computed here as smoothed consumption
 RESULT(v[10] )
 
 
+EQUATION("IncomeCapita")
+/*
+Comment
+*/
+v[0]=V("Income");
+v[1]=V("Individuals");
+if(v[1]>0.001)
+ v[2]=v[0]/v[1];
+else
+ v[2]=0; 
+RESULT(v[2] )
+
+EQUATION("TotIncomeCapita")
+/*
+Comment
+*/
+v[0]=V("TotIncome");
+v[1]=V("TotIndividuals");
+RESULT(v[0]/v[1] )
+
 
 EQUATION("TotIncome")
 /*
@@ -1037,6 +1081,31 @@ else
  v[2]=v[0]/v[1]; 
 RESULT(v[2] )
 
+EQUATION("UnitLaborCost")
+/*
+Unit labor cost
+*/
+
+v[21]=v[22]=0;
+CYCLE(cur, "Labor")
+ {
+  v[16]=VS(cur,"wage");
+  v[17]=VS(cur,"NumWorkers");
+  v[21]+=v[16]*v[17];
+  v[22]+=v[17]; // total labour force
+ }
+
+if(v[22]>0)
+ v[23]=v[21]/v[22];
+else
+ v[23]=0; 
+WRITE("AvWage",v[11]);
+
+v[0]=V("CapitalCapacity");
+v[1]=V("LaborCapacity");
+v[2]=min(v[0],v[1]);
+v[24]=v[21]/v[2];
+RESULT(v[24] )
 
 
 EQUATION("price")
@@ -1044,45 +1113,9 @@ EQUATION("price")
 Markup on the unit production cost
 */
 v[10]=V("markup");
-v[21]=v[22]=0;
-CYCLE(cur, "Labor")
- {
-  v[16]=VS(cur,"wage");
-  v[17]=VS(cur,"NumWorkers");
-  v[21]+=v[16]*v[17];
-  //v[22]+=v[17]; // total labour force
- }
-v[22]=V("NumWorkers"); // labour in the first tier (the ones which define the production capacity)
-if(v[21]==0)
- v[11]=V("AvWage");
-else
- v[11]=v[21]/v[22];  //av. wage in the firm
-WRITE("AvWage",v[11]);
-/*
-if(v[2]==0)
- {
-  v[12]=V("IncProductivity"); //productivity of the first (the best) K in the list
-  v[13]=v[11]*v[10]/v[12];
-  END_EQUATION(v[13]);
- }
- */
-v[59]=V("CapitalIntens");
-v[52]=V("CapitalDepress");
-v[0]=v[31]=v[32]=0;
-CYCLE(cur, "Capital")
- {
-  v[3]=VS(cur,"MaxKQ");
-  v[5]=VS(cur,"IncProductivity");
-  v[0]+=v[3];
-  v[32]+=v[5]*v[3];
- }
+v[22]=V("UnitLaborCost"); // labour in the first tier (the ones which define the production capacity)
 
-v[9]=v[32]/v[0]; //weighted av. incProductivity
-WRITE("AvIncProd",v[9]);
-
-v[14]=v[11]*v[10]/v[9];
-if(v[14]<0)
- v[14]=INTERACT("nEG. price", v[14]);
+v[14]=v[10]*v[22];
 
 RESULT(v[14] )
 
@@ -1125,42 +1158,6 @@ v[2]=V("LaborCost");
 v[3]=v[0]*v[1]-v[2];
 
 RESULT(v[3] )
-
-
-EQUATION("Workforce")
-/*
-Number of workers employed, and actually working in the production process
-*/
-
-V("NumWorkers");
-v[2]=V("IdLabor");
-if(v[2]==1)
- { // number of workers in the first tier
-  v[1]=V("NumWorkers");
-  v[3]=V("DesiredUnusedCapacity");
-  v[4]=VL("MaxLaborProductivity",1);
-  v[5]=V("CapitalCapacity");
-  v[6]=V("DesiredQ");
-  v[7]=min(v[5],v[6]);
-  v[8]=V("aNW");
-  v[9]=v[1]-(v[3]-1)*(v[7]/v[4])*(1-v[8]);
- }
-else
- { // number of workers in the tiers above
-  CYCLES(p->up, cur, "Labor")
-   {
-    v[10]=VS(cur,"IdLabor");
-    if(v[10]==v[2]-1)
-     {
-      v[11]=VS(cur,"nu");
-      v[12]=VS(cur,"Workforce");
-     }
-   }
-  v[9]=v[12]/v[11];
-
- }
-
-RESULT(v[9] )
 
 EQUATION("LaborCost")
 /*
@@ -1231,87 +1228,40 @@ v[8]=v[7]/v[9];
 
 RESULT(v[8] )
 
-EQUATION("CapitalCapacity")
-/*
-Comment
-*/
-
-RESULT(SUM("MaxKQ") )
-
 
 EQUATION("MaxLaborProductivity")
 /*
 Defines the Theoretical Labor Productivity of the Firm as incorporated in the various capital vintages of the firm.
 */
 
-v[10]=v[11]=0;
-CYCLE(cur, "Capital")
- {v[13]=VS(cur,"K");
-  v[12]=VS(cur,"IncProductivity");
-  v[10]+=v[13]*v[12];
- } 
-
-
+v[10]=V("CapitalStock");
 v[0]=0;
 v[1]=0;
 v[2]=V("CapitalDepress");//defines the depression rate of capital
 
-
+v[20]=0;
 CYCLE_SAFE(cur, "Capital")
  {
   v[3]=VS(cur,"K");
   v[4]=VS(cur,"KAge");
   v[5]=VS(cur, "IncProductivity");
-  if(v[5]*v[3]/v[10]<0.001)
-   DELETE(cur);
-  else
-   { 
-    v[6]=pow((1-v[2]),v[4]);//computes the depressiation of capital
-    v[7]=v[3]*v[6];//computes the actual stock of this capital vintage that can be used 
-    v[0]+=(v[7]*v[5]);
-    v[1]+=v[7];
-   } 
- }
-v[8]=v[0]/v[1];//Max Labor productivity computed as the weighted average of the incorporated productivity in every capital vintages
-WRITE("CapitalStock",v[1]);
-v[9]=V("CapitalIntens");
-v[10]=v[1]/v[9];
-
-RESULT(v[8] )
-
-
-EQUATION("LaborComposition")
-/*
-Defines the Labor composition by skills of the Firm as function of the various capital vintages of the firm.
-Measured as the share of Skill Labor required to use the capital combination 
-*/
-v[0]=0;
-v[1]=0;
-v[2]=V("CapitalDepress");//defines the depression rate of capital
-CYCLE(cur, "Capital")
- {
-  v[3]=VS(cur,"K");
-  v[4]=VS(cur,"KAge");
-  v[5]=VS(cur, "IncSkillBiais");
   v[6]=pow((1-v[2]),v[4]);//computes the depressiation of capital
   v[7]=v[3]*v[6];//computes the actual stock of this capital vintage that can be used 
-  v[0]+=(v[7]*v[5]);
-  v[1]+=v[7];
- }
-v[8]=v[0]/v[1];//Skill biais : defines the proportion of skilled workers (skill type 2)
-CYCLE(cur, "Labor")
- {
-  v[9]=VS(cur,"SkillType");
-  if (v[9]<=1)//if the labor type is unskilled
-  	v[10]=1-v[8];
+  if(v[7]/v[10]>0.01)
+   {
+    v[0]+=(v[7]*v[5]);
+    v[1]+=v[7];
+   }
   else
-  	v[10]=v[8];
-  v[11]=max(v[10],0.00001);
-  v[12]=min(v[11],1);
-  WRITES(cur,"SkillIntensity",v[12]);
- }
+   DELETE(cur); 
 
+}
+v[8]=v[0]/v[1];//Max Labor productivity computed as the weighted average of the incorporated productivity in every capital vintages
+
+WRITE("CapitalStock",v[1]);
+WRITE("CapitalCapacity",v[0]);
 RESULT(v[8] )
+
 
 
 EQUATION("KAge")
@@ -1403,85 +1353,14 @@ if(v[1]>0)
   v[2]=V("roRD"); // share of profits devoted to R&D
   v[3]=v[1]*v[2];
   v[4]=INCR("CumProfit",-v[3]);
-  v[5]=ceil(log(1+v[3]));
+  //v[5]=ceil(log(1+v[3]));
+  v[5]=v[3];
  }
 else
  v[5]=0;
 
 RESULT(v[5] )
 
-
-EQUATION("ExploreSector")
-/*
-The equation represent the first step of product R&D: exploration of sectors (needs)
-The firm decide to innovate on a sector that has increasing sales. The number of sectors on which the firm can acquire information depends on the resources invested in R&D. The more the firm invests the further from its knowledge it can explore
-*/
-
-v[1]=V("RdExpenditure"); // amount of R&D in the current period
-if(v[1]>0)
- { // only if the firm had some profirs to devote to R&D
-  v[2]=V("product"); // the good the firm is currently producing
-  v[3]=VS(p->up->up,"totNeeds"); // the total amount of needs (goods to be produced)
-  v[4]=V("zProd"); // Product innovation probability 
-  v[5]=exp(-v[4]*v[1]);
-  v[6]=v[3]*(1-v[5])/2;
-  v[7]=round(v[6]);
-  v[8]=v[2]-v[7];
-  v[9]=max(1,v[8]); // the minimum value of the good the firm can explore (exploration on the left side of the need spectrum)
-  v[10]=v[2]+v[7];
-  v[11]=min(v[3],v[10]); // the maximum value of the good (need) the firm can explore (exploration on the right side of the need spectrum - starting from the produced good)
-  v[12]=-1000;
-  CYCLES(p->up->up, cur, "Sectors")
-   { // cycle through the sectoral sales to identify the one in which the sales have grown most in the last period
-    v[14]=VS(cur,"IdGood");
-    if(v[14]>=v[9] && v[14]<=v[11])
-     { // include in the extraction the sectors in which the firm can innovate
-      v[13]=VS(cur,"DeltaPotD");
-      v[16]=VLS(cur,"SSales",1);
-      v[17]=VLS(cur,"PotD",1);
-      v[13]=v[17]-v[16];
-      v[18]=abs(v[13]);
-      if(v[13]<0)
-       WRITES(cur,"sectorProb",1/v[18]+1);
-      else
-       WRITES(cur,"sectorProb",v[13]*100);
-     }
-    else
-     WRITES(cur,"sectorProb",0.01);
-   }
-  cur1=RNDDRAWS(p->up->up,"Sectors","sectorProb"); // randomly draw the sector with probabilities that depend on the escess potential demand
-  v[15]=VS(cur1,"IdGood");
-  if(v[15]<v[9] || v[15]>v[11])
-   v[15]=v[2];
- }
-else
- v[15]=0;
-
-RESULT(v[15] )
-
-
-EQUATION("ExcessD")
-/*
-Excess demand in a sector (need). The variable on which the prototype is chosone
-*/
-
-v[1]=V("PotD");
-v[2]=V("SSales");
-
-RESULT(v[1]-v[2] )
-
-
-
-EQUATION("GrowthSSales")
-/*
-Rate of growth of the sectol sales
-*/
-
-v[1]=VL("SSales",1);
-v[2]=V("SSales");
-v[3]=v[2]-v[1];
-
-RESULT(v[3] )
 
 
 EQUATION("ProdInno")
@@ -1490,7 +1369,7 @@ The actual product innovation: extraction of a quality given the quality of the 
 */
 
 v[17]=V("RdExpenditure");
-if(v[17]<0)
+if(v[17]<=0)
  END_EQUATION(0);
  
 V("Trade");
@@ -1513,51 +1392,6 @@ for(v[14]=v[9]=0; v[9]<v[17]; v[9]++)
 
 RESULT(v[14] )
 
-
-EQUATION("PotD")
-/*
-Potential demand for a specific good (need) given by the total income of a class per the share of expenditure on the specific neede
-*/
-
-v[1]=V("IdGood");
-v[5]=0;
-CYCLES(p->up, cur, "Demand")
- {
-  CYCLES(cur, cur1, "Class")
-   { // cycle all classes
-    CYCLES(cur1, cur2, "Need")
-     { // cycle the needs and select the one satisfied by the calling sector
-      v[2]=VS(cur2,"IdNeed");
-      if(v[2]==v[1])
-       { // if the need represents the calling good
-        v[3]=VS(cur2,"Share"); // share of expenditure devoted to this need
-        v[6]=VS(cur1,"TotIterations");
-        v[7]=VS(cur2,"NumIterations");
-        v[3]=v[7]/v[6]; // share of expenditure devoted to this need as a result of the roundedc onsumption iterations
-        v[4]=VS(cur1,"Expenditure"); // total expenditure
-        v[5]+=v[4]*v[3];
-       }
-     }
-
-   }
-
- }
-
-RESULT(v[5] )
-
-
-EQUATION("DeltaPotD")
-/*
-Change in the potential demand
-*/
-
-v[1]=VL("PotD",1);
-v[2]=V("PotD");
-v[3]=v[2]-v[1];
-
-RESULT(v[3] )
-
-
 EQUATION("MovAvExpSales")
 /*
 Moving average of expected sales.
@@ -1568,267 +1402,7 @@ v[1]=VL("MovAvExpSales",1);
 v[2]=VL("ExpectedSales",1);
 v[3]=V("aExpSales");
 v[4]=v[3]*v[2]+(1-v[3])*v[1];
-
-RESULT(v[4] )
-
-
-EQUATION("DMonetarySales")
-/*
-Change in monetary sales
-*/
-
-v[1]=V("MonetarySalesL");
-v[2]=V("MonetarySales");
-v[3]=v[2]-v[1];
-
-RESULT(v[3] )
-
-
-EQUATION("MovAvMonSales")
-/*
-Moving average of the Monetary sales.
-To be used as a measure f the probability to insert an innovation in the market (if oscillations are not too large)
-*/
-
-v[1]=VL("MovAvMonSales",1);
-v[2]=V("MonetarySalesL");
-v[3]=V("aMonSales");
-v[4]=v[3]*v[2]+(1-v[3])*v[1];
-
-RESULT(v[4] )
-
-
-EQUATION("DMovAvMonSales")
-/*
-Growth of the moving average of monetary sales
-*/
-
-v[1]=V("MovAvMonSales");
-v[2]=VL("MovAvMonSales",1);
-v[3]=v[1]-v[2];
-
-RESULT(v[3] )
-
-
-EQUATION("DUnitSales")
-/*
-Growth of unit sales
-*/
-
-v[1]=V("UnitSales");
-v[2]=V("UnitSalesL"); // lagged unit sales
-v[3]=v[1]-v[2];
-
-RESULT(v[3] )
-
-
-
-
-
-EQUATION("Innovate")
-/*
-Introduction of the innovation: one of the prototipes is adopted by the firm, replacing the current poduction.
-It occurs (in probability) when the growth of unit sales is decreasing
-*/
-
-v[15]=INCR("tInno",-1);
-if(v[15]<=0)
- {
-  
-  v[3]=V("DUnitSales");
-  v[17]=VL("DUnitSales",1);
-  if(v[3]<0 && v[17]<0)
-   { // if the expected sales are declining for the second consecutive period (they do not decline only for )
-    v[18]=V("zInno"); /// parameter that defines the likelihood of introducing an innovation
-    v[19]=exp(v[18]*1/v[3]); // probability of introducing an innovation increases the higher is the reduction in sales
-    v[20]=UNIFORM(0,1);
-    if(v[20]<v[19])
-     {
-      v[7]=0;
-      CYCLE(cur, "PNeed")
-       {
-        v[4]=VS(cur,"IdPNeed");
-        v[8]=VS(cur,"productProt");
-        if(v[4]>0)
-         {// cycle through the prototipes
-          CYCLES(cur, cur1, "Ch")
-           {
-            v[5]=VS(cur1,"IdCh");
-            if(v[5]>1)
-             {// cycle through the quality characteristics
-              v[6]=VS(cur1,"x");
-              if(v[6]>v[7])
-               {
-                v[7]=v[6];
-                v[9]=v[8];
-                v[12]=v[4];
-               }
-             }
-           }
-    
-         }
-       }
-     
-      if(v[7]>0)
-       {// if at least one prototipe was active
-        v[22]=v[24]=0;
-        v[23]=V("product");
-        CYCLES(p->up->up, cur2, "Supply")
-         {
-          CYCLES(cur2, cur3, "Firm")
-           {
-            v[21]=VS(cur3,"product");
-            if(v[21]==v[9])
-             { // count ht enumber of firms producing the same product of the prototipe to e introduced
-              v[22]++;
-             }
-            if(v[21]==v[23])
-             v[24]++; // count the number of firms that are in the same market in which the firms is
-           }
-  
-         }
-        if(v[9]!=v[23] && v[22]<v[24])
-         { // if the market of the prototipe os less competitive then the one in which the frms is producing
-          cur=SEARCH("PNeed");
-          CYCLES(cur, cur1, "Ch")
-           {
-            v[10]=VS(cur1,"IdCh");
-            if(v[10]>1) // write the new quality on the quality characteristic
-             WRITELS(cur1,"x",v[7], t);
-           }
-          WRITE("product",v[9]); // write the new product
-          CYCLE(cur, "PNeed")
-           { // do another cycle to set to 0 the prototipe that has been introduced, so that it is not used again in the next period, an it is the first one to be replaced
-            v[11]=VS(cur,"IdPNeed");
-            if(v[11]==v[12])
-             { // gp back to the prototipe used
-              CYCLES(cur, cur1, "Ch")
-               {
-                v[13]=VS(cur1,"IdCh");
-                if(v[13]>1)
-                 { // go to the quality characteristic
-                  v[14]=VS(cur1,"x");
-                  WRITELS(cur1,"x",0,t);
-                  //if(v[14]!=v[7])
-                   //INTERACT("This was not the prototipe, check the IdPNeed", v[12]);
-                 }
-               }
-        
-             }
-           }
-          v[16]=VS(p->up,"innoInterval"); // minimum interval between the introduction of two prototipes
-          WRITE("tInno",v[16]);
-        }
-        if(v[9]==v[23])
-         { // if the prototipe is in the same market in which the firm is producing 
-          cur=SEARCH("PNeed");
-          CYCLES(cur, cur1, "Ch")
-           {
-            v[10]=VS(cur1,"IdCh");
-            v[25]=VS(cur1,"x");
-            if(v[10]>1 && v[7]>v[25]) // write the new quality on the quality characteristic
-             WRITELS(cur1,"x",v[7], t);
-           }
-          WRITE("product",v[9]); // write the new product
-          CYCLE(cur, "PNeed")
-           { // do another cycle to set to 0 the prototipe that has been introduced, so that it is not used again in the next period, an it is the first one to be replaced
-            v[11]=VS(cur,"IdPNeed");
-            if(v[11]==v[12])
-             { // gp back to the prototipe used
-              CYCLES(cur, cur1, "Ch")
-               {
-                v[13]=VS(cur1,"IdCh");
-                if(v[13]>1)
-                 { // go to the quality characteristic
-                  v[14]=VS(cur1,"x");
-                  WRITELS(cur1,"x",0,t);
-                  //if(v[14]!=v[7])
-                   //INTERACT("This was not the prototipe, check the IdPNeed", v[12]);
-                 }
-               }
-        
-             }
-           }
-          v[16]=VS(p->up,"innoInterval"); // minimum interval between the introduction of two prototipes
-          WRITE("tInno",v[16]);
-        }
-       if(v[9]!=v[23] && v[22]>=v[24]-1)
-        v[9]=-3; // the new market is more competitve than the one in which the firm is now
-      }
-      else
-       v[9]=-1; // no prototipe available
-    }
-    else
-     v[9]=-4; // low probability to innovate (reduction in sale was not so large)
-   }	
-  else
-   v[9]=0; // no need to innovate, sales are not decreasing
-   }
-else
- v[9]=-2; // to close to the previous innovation
-
-RESULT(v[9] )
-
-
-EQUATION("ProbInnovate")
-/*
-Probability that a firm introduces an innovation, given a deterioration of its market conditions (expected sales)
-We use different indicators
-*/
-
-v[1]=V("NegSales");
-v[2]=V("DeltaExpSales");
-
-
-RESULT(1 )
-
-
-
-EQUATION("DeltaExpSales")
-/*
-Rate of change of the firms' expected sales.
-To be used as a trigger of the introuction of an innovation
-*/
-
-v[1]=VL("ExpectedSales",1);
-v[2]=V("ExpectedSales");
-v[3]=v[2]/v[1]-1;
-
-RESULT(v[3] )
-
-
-EQUATION("SumDeltaExpSales")
-/*
-Sum of the negative rate of growth of expected sales, for consecutive periods of ngeative growth rate
-*/
-
-v[1]=V("DeltaExpSales");
-v[2]=VL("SumDeltaExpSales",1);
-if(v[1]<0)
- v[3]=v[2]+v[1];
-else
- v[3]=0;
-
-RESULT(v[3] )
-
-
-EQUATION("NegSales")
-/*
-Number of consecutive periods during which the growth rate of the expected sales of a firm is negative
-*/
-
-v[1]=VL("NegSales",1);
-v[2]=V("DeltaExpSales");
-if(v[2]<0)
- v[3]=v[1]+1;
-else
- v[3]=0;
-
-RESULT(v[3] )
-
-
-
-
+RESULT(v[4])
 
 EQUATION("KapitalNeed")
 /*
@@ -1851,8 +1425,8 @@ v[4]=V("ExpectedSales");
 v[5]=V("backlog")/10;//a tenth of backlog should be got rid of.
 v[5]=0;
 v[7]=V("DesiredUnusedCapacity");
-v[8]=V("CapitalIntens");
-
+//v[8]=V("CapitalIntens");
+v[8]=1;
 v[9]=(v[4]+v[5])*v[7];
 
 v[10]=v[9]-v[3];
@@ -2182,7 +1756,8 @@ Wage of engineers
 v[0]=V("MinWage");
 v[1]=V("KEWagecoeff");
 VS(p->hook->up,"PayTime");
-INCRS(p->hook,"WageIncome",v[1]*v[0]);
+v[3]=V("KNbrEngineers");
+INCRS(p->hook,"WageIncome",v[1]*v[0]*v[3]);
 RESULT((v[0]*v[1]) )
 
 
@@ -2468,13 +2043,16 @@ EQUATION("AggProductivity")
 Comment
 */
 v[0]=0;
-v[1]=0;
+v[1]=v[30]=v[31]=v[32]=0;
 CYCLE(cur2, "Supply")
  {
   CYCLES(cur2, cur, "Firm")
    {
     v[2]=VS(cur,"Q");
     v[0]+=v[2];
+    v[30]++;
+    v[31]+=VS(cur,"Profit");
+    v[32]+=VS(cur,"CumProfit");
     CYCLES(cur, cur1, "Labor")
      {
       v[3]=VS(cur1,"NumWorkers");
@@ -2482,15 +2060,21 @@ CYCLE(cur2, "Supply")
      }
    }
  }
+
+WRITE("AvProfit",v[31]/v[30]);
+WRITE("AvCumProfit",v[32]/v[30]);
 v[4]=0;
 v[5]=0;
-v[10]=0;
+v[10]=v[20]=v[21]=v[22]=v[23]=0;
 CYCLE(cur, "KFirm")
- {
+ {v[20]++;
  	v[7]=VS(cur,"KNbrEngineers");	
  	v[10]+=v[7];
     v[8]=VS(cur,"KProductionFlow");
     v[5]+=v[8];
+  v[21]+=VS(cur,"KProfit");
+  v[22]+=VS(cur,"KCumProfit"); 
+  v[23]+=VS(cur,"CurrentProductivity"); 
    CYCLES(cur, cur1, "KLabor")
     {
      v[6]=VS(cur1,"KNbrWorkers");
@@ -2498,7 +2082,12 @@ CYCLE(cur, "KFirm")
     }
 
  }
+ 
+WRITE("AvCurrentProductivity",v[23]/v[20]);
+WRITE("AvKProfit",v[21]/v[20]);
+WRITE("AvKCumProfit",v[22]/v[0]);
 v[9]=(v[0]+v[5])/(v[1]+v[4]+v[10]);
+WRITE("TotalKProduction",v[5]);
 RESULT(v[9] )
 
 
@@ -2675,9 +2264,7 @@ CYCLE(cur3, "Supply")
         v[2]=VS(cur1,"ExpectedSales");
         v[3]=VS(cur1,"CapitalCapacity");
         v[4]=min(v[2],v[3]);
-        v[5]=VLS(cur1,"SkillIntensity",1);
         v[6]=VLS(cur1,"MaxLaborProductivity",1);
-        v[7]=v[5]/v[6]; // suppressed for the moment the use of skill bias, which should become a continuous variable
         v[13]=VS(cur,"DesiredUnusedCapacity");
         v[8]=v[4]*v[13]/v[6]; //the actual number of workers needed
         v[9]=VLS(cur1,"NumWorkers",1);
@@ -3000,12 +2587,11 @@ CYCLE(cur4, "Supply")
         //v[1]=VS(cur1,"DesiredQ");
         //v[10]=V("backlog");
         //v[11]=v[1]+v[10];
+        v[2]=VS(cur1,"MaxLaborProductivity");
         v[8]=VS(cur1,"CapitalCapacity");
         v[9]=min(v[1],v[8]);
-        v[2]=VLS(cur1,"MaxLaborProductivity",1);
+        //v[2]=VLS(cur1,"MaxLaborProductivity",1);
         v[4]=VS(cur1,"DesiredUnusedCapacity");
-        v[12]=VS(cur,"SkillIntensity"); 
-        v[7]=v[2]/v[12]; // suppressed for the moment the use of skill bias, which should become a continuous variable, rather than a dummy
         v[3]=v[4]*(v[9]/v[2]); // number of workers in the first layer in the first period	
         WRITELLS(cur,"NumWorkers",v[3],t,1);
         WRITELS(cur,"NumWorkers",v[3],t);
@@ -3071,7 +2657,7 @@ CYCLE(cur2, "Supply")
       v[32]+=v[5]*v[3];
      }
     v[9]=v[32]/v[0]; //weighted av. incProductivity
-    WRITES(cur,"AvIncProd",v[9]);
+    WRITELS(cur,"MaxLaborProductivity",v[9],t-1);
     v[14]=v[11]*v[10]/v[9];
     if(v[14]<0)
      v[14]=INTERACT("nEG. price", v[14]);
@@ -3841,49 +3427,6 @@ v[4]=v[2]/v[3];
 
 RESULT(v[4] )
 
-
-EQUATION("AvKCumProfit")
-/*
-Average of the capital firms cumulated profits
-*/
-
-v[2]=v[3]=0;
-CYCLE(cur, "Machinery")
- {
-  CYCLES(cur, cur1, "KFirm")
-   {
-    v[1]=VS(cur1,"KCumProfit");
-    v[2]+=v[1];
-    v[3]++;
-   }
-
- }
-v[4]=v[2]/v[3];
-
-RESULT(v[4] )
-
-
-EQUATION("AvCumProfit")
-/*
-Average of firms cumulated profits
-*/
-
-v[2]=v[3]=0;
-CYCLE(cur, "Supply")
- {
-  CYCLES(cur, cur1, "Firm")
-   {
-    v[1]=VS(cur1,"CumProfit");
-    v[2]+=v[1];
-    v[3]++;
-   }
-
- }
-v[4]=v[2]/v[3];
-
-RESULT(v[4] )
-
-
 EQUATION("Avx")
 /*
 Average value of the quality characteristic (non price characteristic that is not price)
@@ -3902,7 +3445,13 @@ CYCLE(cur, "Sectors")
   WRITES(cur,"SProfits",0);
   WRITES(cur,"SNumFirms",0); 
   WRITES(cur,"SMonetarySales",0); 
-  WRITES(cur,"maxXS",0);    
+  WRITES(cur,"maxXS",0); 
+  WRITES(cur,"SInvHerf",0);   
+  WRITES(cur,"SAvHealth",0);
+  WRITES(cur,"SAvStock",0); 
+  WRITES(cur,"SAvBacklog",0); 
+  WRITES(cur,"SKProductivity",0); 
+  WRITES(cur,"SULC",0);       
  }
 
 CYCLE(cur, "Supply")
@@ -3910,12 +3459,14 @@ CYCLE(cur, "Supply")
   CYCLES(cur, cur1, "Firm")
    {
     INCRS(cur1->hook, "SUnitSales", VS(cur1,"UnitSales"));
-    INCRS(cur1->hook, "SQ", VS(cur1,"Q"));
+    INCRS(cur1->hook, "SQ", v[30]=VS(cur1,"Q"));
     INCRS(cur1->hook, "SRevenues", VS(cur1,"Revenues"));
     INCRS(cur1->hook, "SProfits", VS(cur1,"Profit"));
     INCRS(cur1->hook, "SMonetarySales", VS(cur1,"MonetarySales"));
     INCRS(cur1->hook, "SNumFirms", 1);    
     WRITES(cur1,"MsSector",VS(cur1, "MonetarySales"));
+    INCRS(cur1->hook, "SKProductivity", VS(cur1,"MaxLaborProductivity")*v[30]); 
+    INCRS(cur1->hook, "SULC", VS(cur1,"UnitLaborCost")*v[30]);            
 
     CYCLES(cur1, cur2, "PNeed")
      {
@@ -3925,7 +3476,7 @@ CYCLE(cur, "Supply")
         if(v[1]>1)
          { // to make it simple i assume that the first charateristic is price, this should be generalised
           v[2]=VS(cur3,"x");
-          INCRS(cur1->hook, "AvxS", v[2]);
+          INCRS(cur1->hook, "AvxS", v[2]*v[30]);
           v[5]=VS(cur1->hook,"maxXS");
           if(v[2]>v[5])
            WRITES(cur1->hook,"maxXS",v[2]);
@@ -3950,18 +3501,24 @@ CYCLE(cur1, "Firm")
   else
    v[23]=0; 
   WRITES(cur1,"MsSector",v[23]);
+  INCRS(cur1->hook,"SAvHealth",v[23]*VS(cur1,"Health"));
   INCRS(cur1->hook,"SInvHerf",v[23]*v[23]);
-
+  INCRS(cur1->hook,"SAvStock",v[23]*VS(cur1,"Stocks"));
+  INCRS(cur1->hook,"SAvBacklog",v[23]*VS(cur1,"backlog"));  
  }
 
 CYCLE(cur1, "Sectors")
  {
-  v[26]=VS(cur1,"SNumFirms");
-  if(v[26]>0)
-   MULTS(cur1,"AvxS",1/v[26]);
   v[27]=VS(cur1,"SInvHerf");
-  if(v[27]>0);
+  if(v[27]>0)
    WRITES(cur1,"SInvHerf",1/v[27]); 
+  v[30]=VS(cur1,"SQ");
+  if(v[30]>0);
+   {
+    MULTS(cur1,"AvxS",1/v[30]);
+    MULTS(cur1,"SKProductivity",1/v[30]); 
+    MULTS(cur1,"SULC",1/v[30]);        
+   }
  }
 
 v[5]=v[3]/v[4];
@@ -4319,7 +3876,7 @@ CYCLES(p->up, cur, "Supply")
          }
        }
       v[19]=VS(cur1,"CumProfit");
-      if(v[18]<v[19]);
+      if(v[18]<v[19])
        v[18]=v[19];
      }
    }
