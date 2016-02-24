@@ -1347,19 +1347,11 @@ Cumulated profits (not used to invest in kapital) devoted to product R&D
 
 V("Profit");
 V("InvestmentDecision");
-v[1]=V("CumProfit");
-if(v[1]>0)
- {
-  v[2]=V("roRD"); // share of profits devoted to R&D
-  v[3]=v[1]*v[2];
-  v[4]=INCR("CumProfit",-v[3]);
-  //v[5]=ceil(log(1+v[3]));
-  v[5]=v[3];
- }
-else
- v[5]=0;
+v[0]=V("MovAvExpSales");
 
-RESULT(v[5] )
+v[1]=log(1+v[0]);
+
+RESULT(v[1] )
 
 
 
@@ -1368,26 +1360,35 @@ EQUATION("ProdInno")
 The actual product innovation: extraction of a quality given the quality of the good the firm is currently producing
 */
 
-v[17]=V("RdExpenditure");
-if(v[17]<=0)
+
+if(INCR("tInno",1)<0)
  END_EQUATION(0);
+
+v[17]=V("RdExpenditure");
  
 V("Trade");
 cur1=SEARCH_CND("IdPNeed",0);
 cur=SEARCH_CNDS(cur1,"IdCh",2); 
 v[2]=VS(cur,"x"); // check the current quality level of the produced good
 v[4]=V("product"); // the sector in which the firm is currently producing
-v[6]=V("ProdShockP"); // productivity shock that determines the variance of the product innovation
+v[6]=V("ProdShockP")*v[2]; // productivity shock that determines the variance of the product innovation
 
+
+v[0]=V("zInno"); //probability of hitting an innovation
 for(v[14]=v[9]=0; v[9]<v[17]; v[9]++)
 {
- v[8]=norm(v[2],v[6]); // outcome of the product innovation
- if(v[8]>v[2])
-  {
-   v[14]++;
-   WRITELS(cur,"x",v[8],t);
-   v[8]=v[2];
-  }
+ if(RND<v[0]) 
+ {
+   v[8]=norm(v[2],v[6]); // outcome of the product innovation
+   if(v[8]>v[2])
+    {
+     v[14]++;
+     WRITELS(cur,"x",v[8],t);
+     v[2]=v[8];
+     v[10]=V("innoInterval");
+     WRITE("tInno",-1*v[10]);
+    }
+ }   
 }
 
 RESULT(v[14] )
