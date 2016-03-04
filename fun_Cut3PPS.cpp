@@ -690,7 +690,7 @@ Maximum capacity allowed by currently employed workers on current capital stock
 */
 v[0]=0;
 v[1]=V("MaxLaborProductivity");
-v[2]=VL("NumWorkers",1); // refers only to first layer workers, not to executives
+v[2]=VL("NumWorkers",0); // refers only to first layer workers, not to executives
 v[4]=v[2]*v[1];
 
 RESULT(v[4] )
@@ -967,7 +967,7 @@ v[12]=V("NoConsumption");
 v[2]=V("aEx");
 v[10]=v[0]*v[2]+(1-v[2])*(v[1]+v[12]);
 
-v[8]=v[10]-v[1]-v[12];
+v[8]=v[1]+v[11]-v[10]+v[12];
 
 WRITE("Savings",v[8]); // saving are first computed here as smoothed consumption, and in the ollowing step during the puchase, in case a need cannot be satisfied
 
