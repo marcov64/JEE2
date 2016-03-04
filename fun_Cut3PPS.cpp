@@ -1479,8 +1479,9 @@ CYCLE(cur, "KFirm")
   v[53]+=v[52];
   v[60]++;
   v[64]=VS(cur,"NumOrders");
-  WRITES(cur,"WaitTime",1);
+  v[3]=VS(c,"KapitalNeed");
   v[54]=VS(cur,"KQ");//number of productive workers
+  WRITES(cur,"WaitTime",ceil(v[3]/v[54]));
   if(v[64]>0)
    {
     CYCLES(cur, cur1, "Order")
@@ -1890,9 +1891,12 @@ CYCLES(p->up, cur, "Order")
   v[1]+=v[11]-v[12];
  }
 v[15]=0;
-CYCLES(p->up, cur, "KLabor")
+CYCLE_SAFES(p->up, cur, "KLabor")
  { //check how many tiers already exist
-  v[15]++;
+  if(VLS(cur,"KNbrWorkers",1)>0)
+    v[15]++;
+  else
+    DELETE(cur);  
  }
 v[14]=V("IdKLabor");
 if(v[14]==1)
@@ -1903,6 +1907,8 @@ if(v[14]==1)
   v[3]=v[4]*(v[1]/v[2]);
   v[5]=V("KaNW");
   v[6]=v[0]*v[5]+(1-v[5])*v[3];
+  if(v[6]<1)
+   v[6]=1; //limit the minimum number of workers to 1 to avoid crazy errors.
  }
 else
  {// when above the first tier workers...
