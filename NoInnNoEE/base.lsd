@@ -776,7 +776,7 @@ Param: SKProductivity 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
 
 SIM_NUM 1
-SEED 3
+SEED 1
 MAX_STEP 10000
 EQUATION fun_Cut3PPS.cpp
  MODELREPORT report_Innovation_fast.html

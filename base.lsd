@@ -703,7 +703,7 @@ Param: kapp 0 n + n n	0	0	0	0	0	0	0	0	0	0
 Var: KProductionFlow 0 n + n n
 Var: KPrice 1 n + n n	1	1	1	1	1	1	1	1	1	1
 Param: z 0 n + n n	10000	10000	10000	10000	10000	10000	10000	10000	10000	10000
-Param: ProductivityShock 0 n + n n	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01
+Param: ProductivityShock 0 n + n n	0	0	0	0	0	0	0	0	0	0
 Param: SkillBiaisShock 0 n + n n	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01
 Var: KProfit 0 n + n n
 Param: EngineersHiring 0 n + n n	0.99	0.99	0.99	0.99	0.99	0.99	0.99	0.99	0.99	0.99
@@ -776,7 +776,7 @@ Param: SKProductivity 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
 
 SIM_NUM 1
-SEED 3
+SEED 1
 MAX_STEP 10000
 EQUATION fun_Cut3PPS.cpp
  MODELREPORT report_Innovation_fast.html
@@ -2340,7 +2340,7 @@ END_DESCRIPTION
 Parameter_ProductivityShock
 (no description available)
 _INIT_
- All 10 instances equal to 0.01.
+ All 10 instances equal to 0.
 END_DESCRIPTION
 
 Parameter_SkillBiaisShock

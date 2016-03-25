@@ -1349,7 +1349,10 @@ V("Profit");
 V("InvestmentDecision");
 v[0]=V("MovAvExpSales");
 
-v[1]=log(1+v[0]);
+v[2]=V("roRD");
+v[3]=v[2]*v[0];
+v[1]=log(1+v[3]);
+INCR("CumProfit",-v[3]);
 
 RESULT(v[1] )
 
