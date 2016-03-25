@@ -1086,11 +1086,16 @@ EQUATION("UnitLaborCost")
 Unit labor cost
 */
 
-v[21]=v[22]=0;
+v[21]=v[22]=v[4]=0;
 CYCLE(cur, "Labor")
  {
   v[16]=VS(cur,"wage");
   v[17]=VS(cur,"NumWorkers");
+  if(v[4]==0)
+   {
+    v[5]=v[17];
+    v[4]=1;
+   } 
   v[21]+=v[16]*v[17];
   v[22]+=v[17]; // total labour force
  }
@@ -1101,10 +1106,18 @@ else
  v[23]=0; 
 WRITE("AvWage",v[11]);
 
+/*
 v[0]=V("CapitalCapacity");
 v[1]=V("LaborCapacity");
 v[2]=min(v[0],v[1]);
 v[24]=v[21]/v[2];
+*/
+
+v[2]=V("MaxLaborProductivity");
+if(v[5]>0)
+ v[24]=v[21]/(v[2]*v[5]);
+else
+ v[24]=v[21]; 
 RESULT(v[24] )
 
 
@@ -3523,7 +3536,7 @@ CYCLE(cur1, "Sectors")
   if(v[27]>0)
    WRITES(cur1,"SInvHerf",1/v[27]); 
   v[30]=VS(cur1,"SQ");
-  if(v[30]>0);
+  if(v[30]>0)
    {
     MULTS(cur1,"AvxS",1/v[30]);
     MULTS(cur1,"SKProductivity",1/v[30]); 
