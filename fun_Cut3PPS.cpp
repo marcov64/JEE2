@@ -7,6 +7,21 @@ MODELBEGIN
 *	DEMOGRAPHY
 *
 ******************************************/
+EQUATION("TotalSavings")
+/*
+Comment
+*/
+
+v[0]=v[1]=0;
+CYCLE(cur, "Class")
+ {
+  v[0]+=VS(cur,"Savings");
+  
+ }
+
+RESULT(v[0] )
+
+
 
 EQUATION("Health")
 /*
@@ -962,10 +977,11 @@ v[0]=VL("Expenditure",1);
 v[3]=VL("ShareIncome",1);
 v[4]=V("ExIncome");
 v[1]=VL("Income",1)+v[3]*v[4];
+v[14]=V("InterestRate");
 v[11]=V("Savings");
 v[12]=V("NoConsumption");
 v[2]=V("aEx");
-v[10]=v[0]*v[2]+(1-v[2])*(v[1]+v[12]);
+v[10]=v[0]*v[2]+(1-v[2])*(v[1]+v[11]*v[14]+v[12]);
 
 v[8]=v[1]+v[11]-v[10]+v[12];
 
@@ -1140,6 +1156,19 @@ Profit, difference between revenues and total costs
 v[0]=V("Revenues");
 v[2]=V("LaborCost");
 v[3]=v[0]-v[2];
+
+v[8]=V("ActiveInterestRate");
+
+v[5]=V("BorrowedK");
+if(v[5]>0)
+{
+ v[6]=max(0, max(v[3],v[5]) );
+ v[3]-=v[6];
+ v[7]=INCR("BorrowedK",-v[6]);
+ INCRS(p->up->up,"TotalLent",-v[6]);
+ INCRS(p->up->up,"TotalSavings",v[6]*v[8]);
+ v[3]-=v[6]*v[8];
+}  
 v[4]=INCR("CumProfit",v[3]);
 
 RESULT(v[3] )
@@ -1462,13 +1491,62 @@ if(v[0]==1)
 //we are here only if there is no pending order
 
 v[1]=V("KapitalNeed");
+V("RationingKPurchases")
 if(v[1]>0)
  {
-  v[3]=V("PlaceOrder");
+ 
+  v[4]=V("RationingRatioFirm");  
+  v[3]=V("PlaceOrder")*v[4];
   WRITE("Waiting",1);
  } 
 
 RESULT( 1)
+
+EQUATION("RationingKPurchases")
+/*
+Compute financing need for K purchase and, in case, verify 
+*/
+
+v[0]=v[1]=0;
+CYCLE(cur, "KFirm")
+ {//find the max price
+  v[2]=VS(cur,"KPrice");
+  if(v[2]>v[1])
+   v[1]=v[2];
+ }
+
+CYCLE(cur, "Firm")
+ {
+  v[3]=VS(cur,"KapitalNeed");
+  v[4]=VS(cur,"CumProfit");
+  v[5]=max(0, (v[3]*v[1]-v[4]));//financing needs
+  v[0]+=v[5];
+ }
+
+if(v[0]==0) //no financing needed
+ END_EQUATION(1);
+ 
+v[6]=V("TotalSavings");
+v[7]=V("TotalLent");
+
+v[8]=v[6]-v[7];//new lending possibility
+
+v[9]= min(1, v[8]/v[0]) //ratio of available financing
+
+CYCLE(cur, "Firm")
+ {
+  v[3]=VS(cur,"KapitalNeed");
+  v[4]=max(0, VS(cur,"CumProfit"));
+  v[5]=max(0, (v[3]*v[1]-v[4]));//financing needs
+  
+  v[10]=v[5]/(v[3]*v[1]);//borrowed share of K purchase
+  v[11]=1 - v[10];   //self-financed share of K purchase
+  v[12]=v[11]+v[10]*v[9]; //all-incluside share of K purchase permitted
+  WRITES(cur,"RationingRatioFirm",v[12]);
+ }
+
+
+RESULT(v[9] )
 
 
 
@@ -1485,7 +1563,9 @@ v[51]=v[53]=v[59]=v[60]=v[58]=v[70]=0;
 v[30]=VS(c,"betaPrice");
 v[31]=VS(c,"betaProd");
 v[32]=VS(c,"betaTime");
+v[3]=VS(c,"KapitalNeed")*VS(c,"RationingRatioFirm");
 //check and evaluate the available supply
+
 CYCLE(cur, "KFirm")
  {
   v[50]=VLS(cur,"KPrice",1);
@@ -1495,7 +1575,7 @@ CYCLE(cur, "KFirm")
   v[53]+=v[52];
   v[60]++;
   v[64]=VS(cur,"NumOrders");
-  v[3]=VS(c,"KapitalNeed");
+
   v[54]=VS(cur,"KQ");//number of productive workers
   WRITES(cur,"WaitTime",ceil(v[3]/v[54]));
   if(v[64]>0)
@@ -1549,51 +1629,12 @@ CYCLE(cur, "KFirm")
 
  }
 
-/*****
-v[73]=0;
-CYCLE(cur, "KFirm")
- {
-  v[71]=VS(cur,"kselect");
-  v[72]=v[71]/v[70];
-  WRITES(cur,"kchoice",v[72]);
-  v[73]+=v[72];
- }
-
-v[73]=SUM("kchoice");
-
-//if((double)t>1)
- //INTERACT("check that kchoice has been allocated", v[73]);
-
-v[81]=0;
-CYCLE(cur, "KFirm")
- {
-  v[80]=VS(cur,"kchoice");
-  if(v[80]>v[81])
-   v[81]=v[80];
- }
-
-
-cur=SEARCH_CND("kchoice",v[81]);
-*/
-//if((double)t>1)
- //INTERACTS(cur,"check that it selects the max value", VS(cur,"kchoice")-v[81]);
-
-//cur=RNDDRAWTOT("Kfirm","kchoice", 1);
-//if((double)t>1)
- //INTERACTS(cur,"correct firm?", V("kchoice"));
-//cur=RNDDRAW("KFirm","kapp"); when there is no evalutaion of the capital acquired
-
-//assuming there is only one K firm for each technology, use the following, which is faster
-//cur=SEARCH_CND("IdKTech",v[0]);
-
 
 
 //Legend:
 //c: it is the final producer firm ordering the K
 //cur: is the K producer
-//cur1: is the order of K under production
 
-//cur1=ADDOBJS(cur,"Order");
 cur=cur1;
 v[6]=VLS(cur,"KPrice",1);
 if(VS(cur,"NumOrders")==0)
@@ -1602,7 +1643,6 @@ else
  cur1=ADDOBJS(cur,"Order");
 
 v[2]=VS(c,"IdFirm");
-v[3]=VS(c,"KapitalNeed");
 v[7]=VS(c,"Ishare");
 v[8]=VS(c,"Profit");
 v[11]=max(v[8],0);
@@ -1620,7 +1660,15 @@ WRITES(cur1,"Kproductivity",v[4]); //tech characteristics of the capital stock o
 v[5]=VLS(cur,"CurrentSkillBiais",1);
 WRITES(cur1,"KSkillBiais",v[5]);
 WRITES(cur1,"KP",v[6]);// write the price of the capital in the period in which it is ordered, and use it to compute the actual expenditure using the `agreed' price.
-v[12]=INCRS(c,"CumProfit",-(v[6]*v[3]));
+
+
+v[12]=VS(c,"CumProfit");
+v[14]=max(0, v[12]); //money available
+v[13]=min(v[6]*v[3], v[14]);//self-financed spending
+WRITES(c,"CumProfit",v[12]-v[13]); //new cumprofits after K order
+v[15]=v[6]*v[3]-v[13]; //borrowed spending
+INCRS(c,"BorrowedK",v[15]);//increase
+INCRS(p->up,"TotalLent",v[15]);
 
 RESULT(1 )
 
