@@ -31,7 +31,7 @@ Values close to 0 approach exit, 1 is perfect health.
 v[2]=V("aHealth");
 
 v[1]=V("CumProfit");
-if(v[1]>0)
+if(v[1]>=0)
  END_EQUATION(v[2]*CURRENT+ (1-v[2]));
 
 v[3]=-v[1]; 
@@ -1159,12 +1159,12 @@ v[3]=v[0]-v[2];
 
 v[8]=V("ActiveInterestRate");
 
-v[5]=V("BorrowedK");
+v[5]=V("Debt");
 if(v[5]>0)
 {
- v[6]=max(0, max(v[3],v[5]) );
+ v[6]=max(0, min(v[3],v[5]) );
  v[3]-=v[6];
- v[7]=INCR("BorrowedK",-v[6]);
+ v[7]=INCR("Debt",-v[6]);
  INCRS(p->up->up,"TotalLent",-v[6]);
  INCRS(p->up->up,"TotalSavings",v[6]*v[8]);
  v[3]-=v[6]*v[8];
@@ -1491,12 +1491,10 @@ if(v[0]==1)
 //we are here only if there is no pending order
 
 v[1]=V("KapitalNeed");
-V("RationingKPurchases")
+V("RationingKPurchases");
 if(v[1]>0)
  {
- 
-  v[4]=V("RationingRatioFirm");  
-  v[3]=V("PlaceOrder")*v[4];
+  v[3]=V("PlaceOrder");
   WRITE("Waiting",1);
  } 
 
@@ -1531,18 +1529,22 @@ v[7]=V("TotalLent");
 
 v[8]=v[6]-v[7];//new lending possibility
 
-v[9]= min(1, v[8]/v[0]) //ratio of available financing
+v[9]= min(1, v[8]/v[0]); //ratio of available financing
 
+WRITE("RationingRatio",v[9]);
 CYCLE(cur, "Firm")
  {
   v[3]=VS(cur,"KapitalNeed");
-  v[4]=max(0, VS(cur,"CumProfit"));
-  v[5]=max(0, (v[3]*v[1]-v[4]));//financing needs
-  
-  v[10]=v[5]/(v[3]*v[1]);//borrowed share of K purchase
-  v[11]=1 - v[10];   //self-financed share of K purchase
-  v[12]=v[11]+v[10]*v[9]; //all-incluside share of K purchase permitted
-  WRITES(cur,"RationingRatioFirm",v[12]);
+  if(v[3]>0)
+  {
+   v[4]=max(0, VS(cur,"CumProfit"));
+   v[5]=max(0, (v[3]*v[1]-v[4]));//financing needs
+   
+   v[10]=v[5]/(v[3]*v[1]);//borrowed share of K purchase
+   v[11]=1 - v[10];   //self-financed share of K purchase
+   v[12]=v[11]+v[10]*v[9]; //all-incluside share of K purchase permitted
+   WRITES(cur,"RationingRatioFirm",v[12]);
+  } 
  }
 
 
@@ -1667,7 +1669,7 @@ v[14]=max(0, v[12]); //money available
 v[13]=min(v[6]*v[3], v[14]);//self-financed spending
 WRITES(c,"CumProfit",v[12]-v[13]); //new cumprofits after K order
 v[15]=v[6]*v[3]-v[13]; //borrowed spending
-INCRS(c,"BorrowedK",v[15]);//increase
+INCRS(c,"Debt",v[15]);//increase
 INCRS(p->up,"TotalLent",v[15]);
 
 RESULT(1 )
