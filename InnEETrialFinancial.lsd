@@ -525,7 +525,7 @@ Param: MinimumPMinW 0 n + n n	100
 Param: MinimumPMaxE 0 n + n n	500
 Param: MinimumPMinE 0 n + n n	100
 Var: MinimumInit 0 n + n n
-Param: TotalRedeemed 0 s + n n	0
+Param: TotalRedeemed 0 n + n n	0
 Var: TotalSavings 0 s + n n
 Param: TotalLent 0 s + n n	0
 Var: RationingKPurchases 0 n + n n
@@ -585,7 +585,7 @@ Param: aPrice 0 n + n n	0.95	0.95	0.95	0.95	0.95	0.95	0.95	0.95	0.95	0.95	0.95	0
 Var: CapitalCapacity 0 n + n n
 Var: LaborCapacity 0 n + n n
 Param: AvWage 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
-Param: CumProfit 1 s + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
+Param: CumProfit 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: betaPrice 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: betaProd 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: betaTime 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
@@ -776,8 +776,8 @@ Param: maxXS 0 n + n n	0	0	0	0	0	0	0	0	0	0
 Param: aFrontierX 0 n + n n	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9	0.9
 Param: maxCumProfit 0 n + n n	0	0	0	0	0	0	0	0	0	0
 Param: shareEntryCumProfit 0 n + n n	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1
-Param: probEntry 0 n + n n	0	0	0	0	0	0	0	0	0	0
-Param: minHealth 0 n + n n	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1
+Param: probEntry 0 n + n n	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1
+Param: minHealth 0 n + n n	0.15	0.15	0.15	0.15	0.15	0.15	0.15	0.15	0.15	0.15
 Var: Demography 0 n + n n
 Param: SUnitSales 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SQ 0 s + n n	0	0	0	0	0	0	0	0	0	0
@@ -1307,8 +1307,6 @@ END_DESCRIPTION
 
 Parameter_TotalRedeemed
 (no description available)
-_INIT_
-
 END_DESCRIPTION
 
 Variable_TotalSavings
@@ -2712,13 +2710,13 @@ END_DESCRIPTION
 Parameter_probEntry
 (no description available)
 _INIT_
- All 10 instances equal to 0.
+ All 10 instances equal to 0.1.
 END_DESCRIPTION
 
 Parameter_minHealth
 (no description available)
 _INIT_
- All 10 instances equal to -1.
+ All 10 instances equal to 0.15.
 END_DESCRIPTION
 
 Variable_Demography

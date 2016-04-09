@@ -16,10 +16,10 @@ v[0]=v[1]=0;
 CYCLE(cur, "Class")
  {
   v[0]+=VS(cur,"Savings");
-  
  }
-
-RESULT(v[0] )
+v[2]=V("TotalRedeemed");
+WRITE("TotalRedeemed",0);
+RESULT(v[0]+v[2] )
 
 
 
@@ -983,6 +983,7 @@ v[12]=V("NoConsumption");
 v[2]=V("aEx");
 v[10]=v[0]*v[2]+(1-v[2])*(v[1]+v[11]*v[14]+v[12]);
 
+v[10]=max(0,v[10]);
 v[8]=v[1]+v[11]-v[10]+v[12];
 
 WRITE("Savings",v[8]); // saving are first computed here as smoothed consumption, and in the ollowing step during the puchase, in case a need cannot be satisfied
@@ -1155,18 +1156,20 @@ Profit, difference between revenues and total costs
 */
 v[0]=V("Revenues");
 v[2]=V("LaborCost");
-v[3]=v[0]-v[2];
 
 v[8]=V("ActiveInterestRate");
 
 v[5]=V("Debt");
+v[15]=v[5]*v[8];
+v[3]=v[0]-v[2]-v[15];
+INCRS(p->up->up,"TotalRedeemed",v[15]);
 if(v[5]>0)
 {
  v[6]=max(0, min(v[3],v[5]) );
  v[3]-=v[6];
  v[7]=INCR("Debt",-v[6]);
  INCRS(p->up->up,"TotalLent",-v[6]);
- INCRS(p->up->up,"TotalSavings",v[6]*v[8]);
+ INCRS(p->up->up,"TotalRedeemed",v[6]);
  v[3]-=v[6]*v[8];
 }  
 v[4]=INCR("CumProfit",v[3]);
@@ -1521,17 +1524,23 @@ CYCLE(cur, "Firm")
   v[0]+=v[5];
  }
 
+WRITE("RationingRatio",1);
 if(v[0]==0) //no financing needed
  END_EQUATION(1);
  
 v[6]=V("TotalSavings");
 v[7]=V("TotalLent");
 
-v[8]=v[6]-v[7];//new lending possibility
+v[8]=max(0,v[6]-v[7]);//new lending possibility. It may go negative, for some reason (excess lending?)
 
 v[9]= min(1, v[8]/v[0]); //ratio of available financing
 
+
 WRITE("RationingRatio",v[9]);
+if(v[9]==0) //no financing needed
+ END_EQUATION(0);
+
+
 CYCLE(cur, "Firm")
  {
   v[3]=VS(cur,"KapitalNeed");
@@ -1543,6 +1552,8 @@ CYCLE(cur, "Firm")
    v[10]=v[5]/(v[3]*v[1]);//borrowed share of K purchase
    v[11]=1 - v[10];   //self-financed share of K purchase
    v[12]=v[11]+v[10]*v[9]; //all-incluside share of K purchase permitted
+   if(v[12]<0)
+    INTERACTS(cur, "Neg. rationing F", v[12]);
    WRITES(cur,"RationingRatioFirm",v[12]);
   } 
  }
@@ -1620,7 +1631,10 @@ CYCLE(cur, "KFirm")
   v[27]=v[20]/v[61]+1;
   v[28]=v[21]/v[62]+1;
   v[29]=v[26]/v[63]+1;
-  v[33]=pow(v[28],v[31])*pow(v[29],-v[32])*pow(v[27],-v[30]);
+  if(v[27]*v[28]*v[29]==0)
+   v[33]==0;
+  else 
+   v[33]=pow(v[28],v[31])*pow(v[29],-v[32])*pow(v[27],-v[30]);
   WRITES(cur,"kselect",v[33]*VS(cur,"kapp"));
   v[70]+=v[33];
   if(v[33]>v[81])
@@ -2160,6 +2174,8 @@ WRITE("AvCurrentProductivity",v[23]/v[20]);
 WRITE("AvKProfit",v[21]/v[20]);
 WRITE("AvKCumProfit",v[22]/v[0]);
 v[9]=(v[0]+v[5])/(v[1]+v[4]+v[10]);
+if(v[5]<0)
+ INTERACT("Neg.Kprod", v[5]);
 WRITE("TotalKProduction",v[5]);
 RESULT(v[9] )
 
