@@ -7,6 +7,8 @@ MODELBEGIN
 *	DEMOGRAPHY
 *
 ******************************************/
+
+
 EQUATION("TotalSavings")
 /*
 Comment
@@ -381,10 +383,7 @@ CYCLE(cur, "Supply")
     v[6]++;
     CYCLE_SAFES(cur1, cur2, "Labor")
      {
-      v[0]+=VS(cur2,"WagePrem");
-      v[4]=VS(cur2,"NumWorkers");
-      v[2]=VS(cur2,"wage");
-      v[1]+=v[2]*v[4];     
+      v[4]=VS(cur2,"NumWorkers");  
       //INCRS(cur2->hook,"tempWage",v[2]*v[4]);
       if(v[4]==0 && VS(cur2,"IdLabor")!=1)
        DELETE(cur2);
@@ -397,11 +396,7 @@ CYCLE(cur, "KFirm")
   CYCLE_SAFES(cur, cur1, "KLabor")
    {
     v[4]=VS(cur1,"KWage");
-    v[2]=VS(cur1,"KWagePrem");
     v[3]=VS(cur1,"KNbrWorkers");
-    v[0]+=v[2];
-    v[1]+=v[3]*v[4];
-    //INCRS(cur1->hook,"tempWage",v[3]*v[4]);
     if(v[4]==0 && VS(cur2,"IdKLabor")!=1)
       DELETE(cur2);
    }
@@ -966,7 +961,14 @@ Comment
 */
 v[0]=V("PremiaIncome");
 v[1]=V("WageIncome");
-RESULT(v[0]+v[1] )
+v[3]=VL("ShareIncome",1);
+v[4]=V("ExIncome");
+v[1]=VL("Income",1)+v[3]*v[4];
+v[14]=V("RentsC");
+v[12]=V("NoConsumption");
+
+v[5]=v[0]+v[1]+v[3]*v[4]+v[14]+v[12];
+RESULT(v[5])
 
 
 EQUATION("Expenditure")
@@ -974,21 +976,34 @@ EQUATION("Expenditure")
 Total money spent by consumers, computed as a combination of past consumption and available resources (from wages and stock options)
 */
 v[0]=VL("Expenditure",1);
-v[3]=VL("ShareIncome",1);
-v[4]=V("ExIncome");
-v[1]=VL("Income",1)+v[3]*v[4];
-v[14]=V("InterestRate");
-v[11]=V("Savings");
-v[12]=V("NoConsumption");
+v[1]=VL("Income",1);
 v[2]=V("aEx");
-v[10]=v[0]*v[2]+(1-v[2])*(v[1]+v[11]*v[14]+v[12]);
-
-v[10]=max(0,v[10]);
-v[8]=v[1]+v[11]-v[10]+v[12];
-
-WRITE("Savings",v[8]); // saving are first computed here as smoothed consumption, and in the ollowing step during the puchase, in case a need cannot be satisfied
-
+v[10]=v[0]*v[2]+(1-v[2])*(v[1]);
 RESULT(v[10] )
+
+EQUATION("RentsC")
+/*
+Rents provided by savings account
+*/
+
+v[0]=VL("BalanceC",1);
+v[1]=VS(p->hook, "InterestRate");
+
+if(v[0]>0)
+ v[2]=v[0]*v[1];
+else
+ v[2]=0;
+RESULT(v[2])
+
+EQUATION("BalanceC")
+/*
+Comment
+*/
+v[0]=VL("BalanceC",1);
+v[1]=V("Income");
+v[2]=V("Expenditure");
+
+RESULT(v[2] )
 
 
 EQUATION("IncomeCapita")
@@ -1152,29 +1167,16 @@ RESULT(v[14] )
 
 EQUATION("Profit")
 /*
-Profit, difference between revenues and total costs
+Profit, difference between revenues, total costs and RD
 */
 v[0]=V("Revenues");
 v[2]=V("LaborCost");
+v[3]=V("RDExpenditure");
 
-v[8]=V("ActiveInterestRate");
 
-v[5]=V("Debt");
-v[15]=v[5]*v[8];
-v[3]=v[0]-v[2]-v[15];
-INCRS(p->up->up,"TotalRedeemed",v[15]);
-if(v[5]>0)
-{
- v[6]=max(0, min(v[3],v[5]) );
- v[3]-=v[6];
- v[7]=INCR("Debt",-v[6]);
- INCRS(p->up->up,"TotalLent",-v[6]);
- INCRS(p->up->up,"TotalRedeemed",v[6]);
- v[3]-=v[6]*v[8];
-}  
-v[4]=INCR("CumProfit",v[3]);
+v[4]=v[0]-v[2]-v[3];
 
-RESULT(v[3] )
+RESULT(v[4] )
 
 
 EQUATION("MovAvProfit")
@@ -1341,44 +1343,159 @@ RESULT((v[0]*v[1]) )
 
 EQUATION("WagePrem")
 /*
-Wage premia distributed, when available to all classes of executives. Premia for single worker should be divided by the number of workers
+Wage premia distributed, when available to all classes of executives. 
 */
 
-V("Profit");
-V("InvestmentDecision");
-v[5]=VS(p->up,"CumProfit");
+v[0]=V("Profit");
+v[2]=V("roPremia");
+v[5]=max(0,v[0]*v[2]);
+
 if(v[5]>0)
  {
-  v[1]=V("IdLabor");
-  if(v[1]>1)
+  CYCLE(cur, "Labor")
    {
-    v[3]=0;
-    CYCLES(p->up, cur, "Labor")
-     { // make a fisrt cycle to compute the overall wage paied to the different layers of executives
-      v[10]=VS(cur,"IdLabor");
-      if(v[10]>1)
-       {
-        v[2]=VS(cur,"wage");
-        v[3]+=v[2];
-       }
+    v[10]=VS(cur,"IdLabor");
+    if(v[10]>1)
+     {
+      v[2]=VS(cur,"wage");
+      v[3]+=v[2];
      }
-    v[9]=V("wage");
-    v[4]=VS(p->up,"roPremia"); //share of profits dedicated to R&D
-    v[5]=VS(p->up,"CumProfit"); // cumulated profits after subtracting investment expenditures
-    v[6]=v[4]*v[5]; // amount of profits to pay premia
-    v[7]=v[6]*v[9]/v[3];
-    VS(p->hook,"PayTime");
-    INCRS(p->up,"CumProfit",-v[7]);
-    INCRS(p->hook,"PremiaIncome",v[7]);
    }
-  else
-   v[7]=0;
+   
+  CYCLE(cur, "Labor")
+   {
+    v[10]=VS(cur,"IdLabor");
+    if(v[10]>1)
+     {v[2]=VS(cur,"wage");
+      WRITES(cur,"Premia",v[5]*v[2]/v[3]);
+      INCRS(cur->hook,"PremiaIncome",v[5]*v[2]/v[3]);
+     }
+   }
  }
-else
- v[7]=0;
 
-RESULT(v[7] )
+RESULT(v[5] )
 
+EQUATION("BalanceF")
+/*
+Balance of the current account for firms
+*/
+v[0]=V("Profit");
+v[1]=V("WagePrem");
+v[2]=V("DebtF");
+if(v[2]>0)
+{
+ v[3]=V("ActiveInterestRate");
+ v[4]=v[3]*v[2];
+ INCRS(p->hook,"ProfitB",v[4]);
+}
+
+v[5]=v[0]-v[1]-v[4]+VL("BalanceF",1); //total liquidity after premia and interests 
+
+if(v[5]>0 && v[2]>0)
+ {
+  v[6]=min(v[2],v[5]);
+  INCR("DebtF",-v[6]);
+  INCRS(p->hook,"TotalDebt",-v[6]);
+  v[5]-=v[6];
+ }
+if(v[5]<0)
+ {
+  INCR("DebtF",v[5]);
+  INCRS(p->hook,"TotalDebt",-v[5]);
+  v[5]=0;
+ } 
+ 
+RESULT(v[5] )
+
+EQUATION("BalanceK")
+/*
+Balance of the current account for firms
+*/
+v[0]=V("KRevenues");
+WRITE("KRevenues",0);
+v[1]=V("KWagePrem");
+v[10]=V("LaborCostK");
+
+v[2]=V("DebtK");
+if(v[2]>0)
+{
+ v[3]=V("ActiveInterestRate");
+ v[4]=v[3]*v[2];
+ INCRS(p->hook,"ProfitB",v[4]);
+}
+
+v[5]=VL("BalanceK",1)+v[0]-v[1]-v[4]; //total liquidity after premia and interests 
+
+if(v[5]>0 && v[2]>0)
+ {
+  v[6]=min(v[2],v[5]);
+  INCR("DebtK",-v[6]);
+  INCRS(p->hook,"TotalDebt",-v[6]);
+  v[5]-=v[6];
+ }
+if(v[5]<0)
+ {
+  INCR("DebtK",v[5]);
+  INCRS(p->hook,"TotalDebt",-v[5]);
+  v[5]=0;
+ } 
+ 
+RESULT(v[5] )
+
+QUATION("WagePremK") 
+/* 
+Wage premia distributed, when available to all classes of executives. 
+*/ 
+
+v[0]=V("BalanceK"); 
+v[2]=V("roPremiaK"); 
+v[5]=max(0,v[0]*v[2]); 
+
+if(v[5]>0) 
+ { 
+  CYCLE(cur, "KLabor") 
+   { 
+    v[10]=VS(cur,"IdKLabor"); 
+    if(v[10]>1) 
+     { 
+      v[2]=VS(cur,"KWage"); 
+      v[3]+=v[2]; 
+     } 
+   } 
+    
+  CYCLE(cur, "KLabor") 
+   { 
+    v[10]=VS(cur,"IdKLabor"); 
+    if(v[10]>1) 
+     {v[2]=VS(cur,"KWwage"); 
+      WRITES(cur,"KPremia",v[5]*v[2]/v[3]); 
+      INCRS(cur->hook,"PremiaIncome",v[5]*v[2]/v[3]); 
+     } 
+   } 
+ } 
+
+RESULT(v[5] ) 
+
+EQUATION("KLaborCost") 
+/* 
+Comment 
+*/ 
+v[0]=0; 
+CYCLE(cur, "KLabor") 
+ { 
+  v[1]=VS(cur,"KNbrWorkers"); 
+  v[2]=VS(cur,"KWage"); 
+  v[0]+=v[1]*v[2]; 
+ } 
+
+CYCLE(cur, "KEngineers") 
+ { 
+  v[1]=VS(cur,"KNbrEngineers"); 
+  v[2]=VS(cur,"KWageEngineers"); 
+  v[0]+=v[1]*v[2]; 
+ } 
+
+RESULT(v[0] ) 
 
 /****************************************************************/
 /******************** PROUCT INNOVATION *************************/
@@ -1494,7 +1611,6 @@ if(v[0]==1)
 //we are here only if there is no pending order
 
 v[1]=V("KapitalNeed");
-V("RationingKPurchases");
 if(v[1]>0)
  {
   v[3]=V("PlaceOrder");
@@ -1503,64 +1619,34 @@ if(v[1]>0)
 
 RESULT( 1)
 
-EQUATION("RationingKPurchases")
+EQUATION("NetWorth")
 /*
-Compute financing need for K purchase and, in case, verify 
+Measure of the value of the firm in case of sales
+*/
+
+v[0]=V("KPresentValue");
+v[1]=V("BalanceF");
+v[2]=V("DebtF");
+
+v[3]=v[0]-v[2]+v[1];
+RESULT(v[3] )
+
+EQUATION("KPresentValue")
+/*
+Present value of capital
 */
 
 v[0]=v[1]=0;
-CYCLE(cur, "KFirm")
- {//find the max price
-  v[2]=VS(cur,"KPrice");
-  if(v[2]>v[1])
-   v[1]=v[2];
- }
-
-CYCLE(cur, "Firm")
+v[5]=V("AvCurrProd");
+CYCLES(p->up, cur, "Capital")
  {
-  v[3]=VS(cur,"KapitalNeed");
-  v[4]=VS(cur,"CumProfit");
-  v[5]=max(0, (v[3]*v[1]-v[4]));//financing needs
-  v[0]+=v[5];
+  v[2]=VS(cur,"ResellPrice");
+  v[3]=VS(cur,"IncProductivity");
+  v[4]=VS(cur,"K");
+  v[0]+=v[2]*v[4]*v[3]/v[5];
  }
 
-WRITE("RationingRatio",1);
-if(v[0]==0) //no financing needed
- END_EQUATION(1);
- 
-v[6]=V("TotalSavings");
-v[7]=V("TotalLent");
-
-v[8]=max(0,v[6]-v[7]);//new lending possibility. It may go negative, for some reason (excess lending?)
-
-v[9]= min(1, v[8]/v[0]); //ratio of available financing
-
-
-WRITE("RationingRatio",v[9]);
-if(v[9]==0) //no financing needed
- END_EQUATION(0);
-
-
-CYCLE(cur, "Firm")
- {
-  v[3]=VS(cur,"KapitalNeed");
-  if(v[3]>0)
-  {
-   v[4]=max(0, VS(cur,"CumProfit"));
-   v[5]=max(0, (v[3]*v[1]-v[4]));//financing needs
-   
-   v[10]=v[5]/(v[3]*v[1]);//borrowed share of K purchase
-   v[11]=1 - v[10];   //self-financed share of K purchase
-   v[12]=v[11]+v[10]*v[9]; //all-incluside share of K purchase permitted
-   if(v[12]<0)
-    INTERACTS(cur, "Neg. rationing F", v[12]);
-   WRITES(cur,"RationingRatioFirm",v[12]);
-  } 
- }
-
-
-RESULT(v[9] )
-
+RESULT(v[0] )
 
 
 EQUATION("PlaceOrder")
@@ -1576,7 +1662,7 @@ v[51]=v[53]=v[59]=v[60]=v[58]=v[70]=0;
 v[30]=VS(c,"betaPrice");
 v[31]=VS(c,"betaProd");
 v[32]=VS(c,"betaTime");
-v[3]=VS(c,"KapitalNeed")*VS(c,"RationingRatioFirm");
+v[3]=VS(c,"KapitalNeed");
 //check and evaluate the available supply
 
 CYCLE(cur, "KFirm")
@@ -1677,15 +1763,6 @@ v[5]=VLS(cur,"CurrentSkillBiais",1);
 WRITES(cur1,"KSkillBiais",v[5]);
 WRITES(cur1,"KP",v[6]);// write the price of the capital in the period in which it is ordered, and use it to compute the actual expenditure using the `agreed' price.
 
-
-v[12]=VS(c,"CumProfit");
-v[14]=max(0, v[12]); //money available
-v[13]=min(v[6]*v[3], v[14]);//self-financed spending
-WRITES(c,"CumProfit",v[12]-v[13]); //new cumprofits after K order
-v[15]=v[6]*v[3]-v[13]; //borrowed spending
-INCRS(c,"Debt",v[15]);//increase
-INCRS(p->up,"TotalLent",v[15]);
-
 RESULT(1 )
 
 
@@ -1740,6 +1817,13 @@ CYCLE_SAFE(cur, "Order")
       WRITELS(cur1,"KExpenditures",v[12], t);
       WRITES(cur->hook,"Waiting",0); //tell the firms it has the new capital
       SORTS(cur->hook,"Capital","IncProductivity", "DOWN");
+      cur5=SEARCHS(c,"BankF");
+      INCRS(cur5,"DebtF",v[5]*v[11]);
+      cur5=SEARCHS(cur,"BankK");
+      INCRS(cur5,"KRevenues",v[5]*v[11]);
+      
+      WRITES(cur1,"ResellPrice",v[11]*V("DiscountUsedK"));
+
       v[20]=INCR("NumOrders",-1);
       if(v[20]>0)
        DELETE(cur);
@@ -1811,11 +1895,10 @@ EQUATION("KNbrEngineers")
 Number of enginers is a share of the number of blue collars. Though they are mantained only when there are the available cumulated profits (their cost should not enter in teh price determination)
 */
 
-v[1]=V("KCumProfit");
 v[2]=VL("KWageEngineers",1);
 v[3]=V("EngineersHiring"); // share of cuimulated profits devoted to increase the amount of engineers
-//v[4]=V("KProfit");
 
+v[1]=V("BalanceK");
 v[4]=0;
 v[7]=max(v[1],v[4]); // in case in which profits are negative for a long time but the firm achieve to sell some macineries, we assume it decides to increase the attractiveness of its capital
 v[5]=v[3]*(v[7]/v[2]);	
@@ -1827,7 +1910,7 @@ v[6]=max(v[5],0);
 v[11]=min(v[10],v[6]);
 //v[12]=INCRS(p->up,"KCumProfit",-(v[11]*v[2]));
 VS(p->hook->up,"PayTime");
-INCRS(p->hook,"Individuals",v[11]);
+INCRS(p->hook,"Individuals",v[11]-v[2]);
 RESULT(v[11] )
 
 
@@ -1919,44 +2002,40 @@ INCRS(p->hook,"WageIncome",v[12]*v[0]*v[1]);
 RESULT((v[0]*v[1]) )
 
 
+
 EQUATION("KWagePrem")
 /*
-Wage premia distributed, when available to all classes of executives. Premia for single worker should be divided by the number of workers
+Wage premia distributed, when available to all classes of executives. 
 */
 
-V("KProfit");
-v[11]=VS(p->up,"EngineersHiring"); // ratio of profits used to invest in engineers in the following period
-v[5]=VS(p->up,"KCumProfit");
+v[0]=V("KProfit");
+v[2]=V("roPremia");
+v[5]=max(0,v[0]*v[2]);
+
 if(v[5]>0)
  {
-  v[1]=V("IdKLabor");
-  if(v[1]>1)
+  CYCLE(cur, "KLabor")
    {
-    v[3]=0;
-    CYCLES(p->up, cur, "KLabor")
-     { // make a fisrt cycle to compute the overall wage paied to the different layers of executives
-      v[10]=VS(cur,"IdKLabor");
-      if(v[10]>1)
-       {
-        v[2]=VS(cur,"KWage");
-        v[3]+=v[2];
-       }
+    v[10]=VS(cur,"IdKLabor");
+    if(v[10]>1)
+     {
+      v[2]=VS(cur,"Kwage");
+      v[3]+=v[2];
      }
-    v[9]=V("KWage");
-    v[5]=VS(p->up,"KCumProfit"); // cumulated profits after subtracting investment expenditures, and adding current profits
-    v[6]=(1-v[11])*v[5]; // amount of cumulated profits to pay premia
-    v[7]=v[6]*v[9]/v[3]; // amount of premium to this class of workers
-    v[8]=INCRS(p->up,"KCumProfit",-v[7]);
-    VS(p->hook,"PayTime");
-    INCRS(p->hook,"PremiaIncome",v[7]);
    }
-  else
-   v[7]=0;
+   
+  CYCLE(cur, "KLabor")
+   {
+    v[10]=VS(cur,"IdKLabor");
+    if(v[10]>1)
+     {v[2]=VS(cur,"Kwage");
+      WRITES(cur,"KPremia",v[5]*v[2]/v[3]);
+      INCRS(cur->hook,"PremiaIncome",v[5]*v[2]/v[3]);
+     }
+   }
  }
-else
- v[7]=0;
 
-RESULT(v[7] )
+RESULT(v[5] )
 
 
 EQUATION("KNbrWorkers")
@@ -2650,9 +2729,11 @@ V("Init_x");
 
 v[22]=VL("MinWage",1);
 CYCLE(cur4, "Supply")
- {
+ {cur7=SEARCH("Bank");
   CYCLES(cur4, cur1, "Firm")
    {// run a first cycle trough firms to set the number of labor in t-1
+    cur=SEARCHS(cur1,"BankF");
+    cur->hook=cur7;
     v[15]=0;
     v[16]=VS(cur1,"product");
     cur5=SEARCH_CND("IdGood",v[16]);
@@ -2775,6 +2856,8 @@ CYCLE(cur2, "Supply")
  }
 CYCLE(cur, "KFirm")
  {
+  cur1=SEARCHS(cur,"BankK");
+  cur1->hook=cur7;
   CYCLES(cur, cur1, "KLabor")
    {
     v[30]=VS(cur1,"IdKLabor");
@@ -3926,54 +4009,6 @@ CYCLES(p->up, cur, "Supply")
  }
 
 RESULT(v[8] )
-
-
-EQUATION("AvxS")
-/*
-Averge quality of the good within a sector, weighted by firms market share
-*/
-
-V("HerfIndexS");
-v[1]=V("IdGood");
-v[2]=v[17]=v[18]=v[8]=v[9]=0;
-CYCLES(p->up, cur, "Supply")
- {
-  CYCLES(cur, cur1, "Firm")
-   {
-    v[3]=VS(cur1,"product");
-    if(v[3]==v[1])
-     { // only for the firms that produce the product of this sector
-      CYCLES(cur1, cur2, "PNeed")
-       { 
-        v[4]=VS(cur2,"IdPNeed");
-        if(v[4]==0)
-         {// only for the product currently produced (excluing the prototypes)
-          CYCLES(cur2, cur3, "Ch")
-           {
-            v[5]=VS(cur3,"IdCh");
-            if(v[5]==2)
-             {// only for the quality characteristic
-              v[6]=VS(cur3,"x"); // check the value of the quality
-              v[7]=VS(cur1,"MsSector");
-              v[2]+=v[6]*v[7];
-              if(v[6]>v[17])
-               v[17]=v[6];
-               
-             }
-           }
-
-         }
-       }
-      v[19]=VS(cur1,"CumProfit");
-      if(v[18]<v[19])
-       v[18]=v[19];
-     }
-   }
-
- }
-WRITE("maxXS",v[17]);
-WRITE("maxCumProfit",v[18]);
-RESULT(v[2])
 
 EQUATION("FrontierX")
 /*
