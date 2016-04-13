@@ -15,12 +15,14 @@ Comment
 */
 
 v[0]=v[1]=0;
-CYCLE(cur, "Class")
+cur1=SEARCHS(p->up,"Demand");
+
+CYCLES(cur1,cur, "Class")
  {
   v[0]+=VS(cur,"Savings");
  }
-v[2]=V("TotalRedeemed");
-WRITE("TotalRedeemed",0);
+v[2]=V("ProfitB");
+WRITE("ProfitB",0);
 RESULT(v[0]+v[2] )
 
 
@@ -32,7 +34,7 @@ Values close to 0 approach exit, 1 is perfect health.
 */
 v[2]=V("aHealth");
 
-v[1]=V("CumProfit");
+v[1]=V("BalanceF");
 if(v[1]>=0)
  END_EQUATION(v[2]*CURRENT+ (1-v[2]));
 
@@ -84,9 +86,10 @@ cur4=SEARCH_CND("NumClass",2);
 WRITES(cur,"wagecoeff",2);
 cur->hook=cur4;
 
-v[10]=VS(c,"shareEntryCumProfit");
-v[11]=VS(c,"maxCumProfit");
-WRITELS(cur1,"CumProfit",v[10]*v[11],t);
+cur2=SEARCHS(cur1,"BankF");
+cur3=SEARCH("Bank");
+cur2->hook=cur3;
+
 RESULT( 1)
 
 
@@ -767,12 +770,20 @@ else
     v[22]=0;
     CYCLES(p->up->up->up,cur2, "Class")
      {
+      if(v[22]==0)
+       {
+        cur7=SEARCHS(cur2,"BankC");
+        cur7=cur7->hook;
+       }
       v[22]++;
+      
      }
     if(v[22]-1<v[18]+1)
      { //starting from the second class (the first are engineers), if it does not exist a class that represnt the new layer of executives, create it
       cur2=SEARCH_CNDS(p->up->up->up,"NumClass",v[18]);
       cur3=ADDOBJS_EX(cur2->up,"Class",cur2);
+      cur8=SEARCHS(cur3,"BankC");
+      cur8->hook=cur7;
       cur1->hook=cur3;
       WRITES(cur3,"NumClass",v[18]+1);
       WRITELS(cur3,"Expenditure",0, t-1);
@@ -981,18 +992,29 @@ v[2]=V("aEx");
 v[10]=v[0]*v[2]+(1-v[2])*(v[1]);
 RESULT(v[10] )
 
+EQUATION("Savings")
+/*
+Comment
+*/
+v[0]=V("Income");
+v[1]=V("Expenditure");
+v[2]=v[0]-v[1];
+RESULT(v[2] )
+
 EQUATION("RentsC")
 /*
 Rents provided by savings account
 */
 
 v[0]=VL("BalanceC",1);
-v[1]=VS(p->hook, "InterestRate");
+v[1]=V("InterestRate");
 
 if(v[0]>0)
  v[2]=v[0]*v[1];
 else
  v[2]=0;
+INCRS(p->hook,"ProfitB",-v[2]);
+ 
 RESULT(v[2])
 
 EQUATION("BalanceC")
@@ -1171,7 +1193,7 @@ Profit, difference between revenues, total costs and RD
 */
 v[0]=V("Revenues");
 v[2]=V("LaborCost");
-v[3]=V("RDExpenditure");
+v[3]=V("RdExpenditure");
 
 
 v[4]=v[0]-v[2]-v[3];
@@ -1401,11 +1423,24 @@ if(v[5]>0 && v[2]>0)
 if(v[5]<0)
  {
   INCR("DebtF",v[5]);
-  INCRS(p->hook,"TotalDebt",-v[5]);
+  INCRS(p->hook,"TotalDebt",v[5]);
   v[5]=0;
  } 
  
 RESULT(v[5] )
+
+EQUATION("LaborCostK")
+/*
+Comment
+*/
+v[0]=0;
+CYCLE(cur, "KLabor")
+ {
+  v[0]+=VS(cur,"KNbrWorkers")*VS(cur,"KWage");
+  v[0]+=VS(cur,"KNbrEngineers")*VS(cur,"KWageEngineers");  
+ }
+
+RESULT(v[0] )
 
 EQUATION("BalanceK")
 /*
@@ -1436,13 +1471,13 @@ if(v[5]>0 && v[2]>0)
 if(v[5]<0)
  {
   INCR("DebtK",v[5]);
-  INCRS(p->hook,"TotalDebt",-v[5]);
+  INCRS(p->hook,"TotalDebt",v[5]);
   v[5]=0;
  } 
  
 RESULT(v[5] )
 
-QUATION("WagePremK") 
+EQUATION("WagePremK") 
 /* 
 Wage premia distributed, when available to all classes of executives. 
 */ 
@@ -1507,14 +1542,12 @@ EQUATION("RdExpenditure")
 Cumulated profits (not used to invest in kapital) devoted to product R&D
 */
 
-V("Profit");
 V("InvestmentDecision");
 v[0]=V("MovAvExpSales");
 
 v[2]=V("roRD");
 v[3]=v[2]*v[0];
 v[1]=log(1+v[3]);
-INCR("CumProfit",-v[3]);
 
 RESULT(v[1] )
 
@@ -1613,6 +1646,7 @@ if(v[0]==1)
 v[1]=V("KapitalNeed");
 if(v[1]>0)
  {
+//  v[2]=VL("NetWorth",1);
   v[3]=V("PlaceOrder");
   WRITE("Waiting",1);
  } 
@@ -1654,6 +1688,7 @@ EQUATION("PlaceOrder")
 Place the order from the calling firm to a Kapital producer adopting the technology of the firm
 */
 
+v[44]=VLS(c,"NetWorth",1);
 v[0]=VS(c,"IdTech"); //this is the technology of the firm
 
 //assuming there are many firms producing K with the same technologies, firm select the one they prefer in terms of price and productivity of the capital, and waiting time (insert also durability of the capital if we include depreciation as a function of production quantity and not time)
@@ -1718,7 +1753,7 @@ CYCLE(cur, "KFirm")
   v[28]=v[21]/v[62]+1;
   v[29]=v[26]/v[63]+1;
   if(v[27]*v[28]*v[29]==0)
-   v[33]==0;
+   v[33]=0;
   else 
    v[33]=pow(v[28],v[31])*pow(v[29],-v[32])*pow(v[27],-v[30]);
   WRITES(cur,"kselect",v[33]*VS(cur,"kapp"));
@@ -1744,14 +1779,15 @@ if(VS(cur,"NumOrders")==0)
 else
  cur1=ADDOBJS(cur,"Order");
 
-v[2]=VS(c,"IdFirm");
-v[7]=VS(c,"Ishare");
-v[8]=VS(c,"Profit");
-v[11]=max(v[8],0);
-v[9]=(v[11]*v[7])/v[6];
-v[10]=max(v[3],v[9]);
+if(v[44]<v[3]*v[6])
+  v[63]=v[44]/v[6];
+else
+ v[63]=v[3];
 
-WRITES(cur1,"KAmount",v[3]);
+WRITES(c,"RationingRatioFirm",v[3]/v[63]); 
+WRITES(cur1,"KAmount",v[63]);
+if(v[63]<0)
+ INTERACT("Neg.KAmount",v[63]);
 WRITES(cur1,"KCompletion",0);
 WRITES(cur1,"TimeWaited",1);
 cur1->hook=c; //useful to retrieve quickly the ordering firm
@@ -1817,9 +1853,9 @@ CYCLE_SAFE(cur, "Order")
       WRITELS(cur1,"KExpenditures",v[12], t);
       WRITES(cur->hook,"Waiting",0); //tell the firms it has the new capital
       SORTS(cur->hook,"Capital","IncProductivity", "DOWN");
-      cur5=SEARCHS(c,"BankF");
+      cur5=SEARCHS(cur->hook,"BankF");
       INCRS(cur5,"DebtF",v[5]*v[11]);
-      cur5=SEARCHS(cur,"BankK");
+      cur5=SEARCH("BankK");
       INCRS(cur5,"KRevenues",v[5]*v[11]);
       
       WRITES(cur1,"ResellPrice",v[11]*V("DiscountUsedK"));
@@ -1898,7 +1934,7 @@ Number of enginers is a share of the number of blue collars. Though they are man
 v[2]=VL("KWageEngineers",1);
 v[3]=V("EngineersHiring"); // share of cuimulated profits devoted to increase the amount of engineers
 
-v[1]=V("BalanceK");
+v[1]=VL("BalanceK",1);
 v[4]=0;
 v[7]=max(v[1],v[4]); // in case in which profits are negative for a long time but the firm achieve to sell some macineries, we assume it decides to increase the attractiveness of its capital
 v[5]=v[3]*(v[7]/v[2]);	
@@ -1908,7 +1944,6 @@ v[9]=VS(p->up,"KNbrWorkers"); // number of first tier worker as a max to chose t
 v[10]=v[9]*v[8];
 v[6]=max(v[5],0);
 v[11]=min(v[10],v[6]);
-//v[12]=INCRS(p->up,"KCumProfit",-(v[11]*v[2]));
 VS(p->hook->up,"PayTime");
 INCRS(p->hook,"Individuals",v[11]-v[2]);
 RESULT(v[11] )
@@ -2019,7 +2054,7 @@ if(v[5]>0)
     v[10]=VS(cur,"IdKLabor");
     if(v[10]>1)
      {
-      v[2]=VS(cur,"Kwage");
+      v[2]=VS(cur,"KWage");
       v[3]+=v[2];
      }
    }
@@ -2028,7 +2063,7 @@ if(v[5]>0)
    {
     v[10]=VS(cur,"IdKLabor");
     if(v[10]>1)
-     {v[2]=VS(cur,"Kwage");
+     {v[2]=VS(cur,"KWage");
       WRITES(cur,"KPremia",v[5]*v[2]/v[3]);
       INCRS(cur->hook,"PremiaIncome",v[5]*v[2]/v[3]);
      }
@@ -2086,13 +2121,20 @@ else
     WRITELLS(cur1,"KNbrWorkers",0, t,1); // write also that the number of workers in the previous period is 0, to be used in the statistics
     v[22]=0;
     CYCLES(p->up->up->up,cur2, "Class")
-     {
+     {if(v[22]==0)
+       {
+        cur7=SEARCHS(cur2,"BankC");
+        cur7=cur7->hook;
+       }
       v[22]++;
      }
     if(v[22]-1<v[18]+1)
      { /// if there is still not a class for the new tyoe of wage earner create one
       cur2=SEARCH_CNDS(p->up->up->up,"NumClass",v[18]);
       cur3=ADDOBJS_EX(cur2->up,"Class",cur2);
+      cur6=SEARCHS(cur3,"BankC");
+      cur6->hook=cur7;
+
       cur1->hook=cur3;
       WRITES(cur3,"NumClass",v[18]+1);
       WRITELS(cur3,"Expenditure",0, t-1);
@@ -2218,7 +2260,7 @@ CYCLE(cur2, "Supply")
     v[0]+=v[2];
     v[30]++;
     v[31]+=VS(cur,"Profit");
-    v[32]+=VS(cur,"CumProfit");
+//    v[32]+=VS(cur,"CumProfit");
     CYCLES(cur, cur1, "Labor")
      {
       v[3]=VS(cur1,"NumWorkers");
@@ -2228,7 +2270,7 @@ CYCLE(cur2, "Supply")
  }
 
 WRITE("AvProfit",v[31]/v[30]);
-WRITE("AvCumProfit",v[32]/v[30]);
+//WRITE("AvCumProfit",v[32]/v[30]);
 v[4]=0;
 v[5]=0;
 v[10]=v[20]=v[21]=v[22]=v[23]=0;
@@ -2251,7 +2293,7 @@ CYCLE(cur, "KFirm")
  
 WRITE("AvCurrentProductivity",v[23]/v[20]);
 WRITE("AvKProfit",v[21]/v[20]);
-WRITE("AvKCumProfit",v[22]/v[0]);
+//WRITE("AvKCumProfit",v[22]/v[0]);
 v[9]=(v[0]+v[5])/(v[1]+v[4]+v[10]);
 if(v[5]<0)
  INTERACT("Neg.Kprod", v[5]);
@@ -2730,6 +2772,13 @@ V("Init_x");
 v[22]=VL("MinWage",1);
 CYCLE(cur4, "Supply")
  {cur7=SEARCH("Bank");
+  cur6=SEARCH("Demand");
+  CYCLES(cur6, cur1, "Class")
+   {
+    cur5=SEARCHS(cur1,"BankC");
+    cur5->hook=cur7;
+   }
+
   CYCLES(cur4, cur1, "Firm")
    {// run a first cycle trough firms to set the number of labor in t-1
     cur=SEARCHS(cur1,"BankF");
@@ -5391,1008 +5440,6 @@ v[4]=v[2]/v[3];
 
 RESULT(v[4] )
 
-
-EQUATION("Av_NSectors")
-/*
-Average number of active sectors in the market
-*/
-
-v[2]=v[3]=0;
-CYCLE(cur, "Country")
- {
-  v[1]=VS(cur,"NSectors");
-  v[2]+=v[1];
-  v[3]++;
- }
-v[4]=v[2]/v[3];
-
-RESULT(v[4] )
-
-
-// STANDARD DEVIATIONS
-
-
-EQUATION("Sd_InvHerfIndex")
-/*
-Standard deviation of the average Herfindahl index across simulations
-*/
-
-v[1]=V("Av_InvHerfIndex");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  cur1=SEARCHS(cur,"Supply");
-  v[2]=VS(cur1,"InvHerfIndex");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfTotalIncome")
-/*
-Standard deviation of the average Inverse Herfindahl index for classes total income across simulations
-*/
-
-v[1]=V("Av_HerfTotalIncome");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  cur1=SEARCHS(cur,"Demand");
-  v[2]=VS(cur1,"HerfTotalIncome");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfWageIncome")
-/*
-Standard deviation of the average Inverse Herfindahl index for classes wage across simulations
-*/
-
-v[1]=V("Av_HerfWageIncome");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  cur1=SEARCHS(cur,"Demand");
-  v[2]=VS(cur1,"HerfWageIncome");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfNonWageIncome")
-/*
-Standard deviation of the average Inverse Herfindahl index for classes non wage income across simulations
-*/
-
-v[1]=V("Av_HerfNonWageIncome");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  cur1=SEARCHS(cur,"Demand");
-  v[2]=VS(cur1,"HerfNonWageIncome");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvIncome")
-/*
-Standard deviation of average income across classes
-*/
-
-v[1]=V("Av_AvIncome");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvIncome");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_Atkinson")
-/*
-Standard deviation of the Atkinson index across runs
-*/
-
-v[1]=V("Av_Atkinson");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"Atkinson");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_Gini")
-/*
-Standard deviation of the Gini index across runs
-*/
-
-v[1]=V("Av_Gini");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"Gini");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_GdpNominal")
-/*
-Standard deviation of the Gdp at variable prices across runs
-*/
-
-v[1]=V("Av_GdpNominal");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"GdpNominal");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_GdpConstant")
-/*
-Standard deviation of the Gdp at constant prices across runs
-*/
-
-v[1]=V("Av_GdpConstant");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"GdpConstant");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_GdpNGrowth")
-/*
-Standard deviation of the Gdp growth at variable prices across runs
-*/
-
-v[1]=V("Av_GdpNGrowth");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"GdpNGrowth");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_GdpCGrowth")
-/*
-Standard deviation of the Gdp growth at constant prices across runs
-*/
-
-v[1]=V("Av_GdpCGrowth");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"GdpCGrowth");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_MinWage")
-/*
-Standard deviation of the minimum wage across runs
-*/
-
-v[1]=V("Av_MinWage");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"MinWage");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AggProductivity")
-/*
-Standard deviation of the aggregate productivity across runs
-*/
-
-v[1]=V("Av_AggProductivity");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AggProductivity");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvPrice")
-/*
-Standard deviation of the average price across runs
-*/
-
-v[1]=V("Av_AvPrice");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvPrice");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_MovAvNbrWork")
-/*
-Standard deviation of the moving average of total number of workers across runs
-*/
-
-v[1]=V("Av_MovAvNbrWork");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"MovAvNbrWork");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_MovAvTotVac")
-/*
-Standard deviation of the moving average of total vacancies offered by firms, across runs
-*/
-
-v[1]=V("Av_MovAvTotVac");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"MovAvTotVac");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_MovAvUnemp")
-/*
-Standard deviation of the moving average of unemployment across runs
-*/
-
-v[1]=V("Av_MovAvUnemp");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"MovAvUnemp2");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvProfit")
-/*
-Standard deviation of the average profits acrss firms, across runs
-*/
-
-v[1]=V("Av_AvProfit");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvProfit");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvKPrice")
-/*
-Standard deviation of the average price across capital firms, across runs
-*/
-
-v[1]=V("Av_AvKPrice");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  cur1=SEARCHS(cur,"Machinery");
-  v[2]=VS(cur1,"AvKPrice");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvKProfit")
-/*
-Standard deviation of the average profits across capital firms, across runs
-*/
-
-v[1]=V("Av_AvKProfit");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvKProfit");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvKCumProfit")
-/*
-Standard deviation of the average cumulated profits across capital firms, across runs
-*/
-
-v[1]=V("Av_AvKCumProfit");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvKCumProfit");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvCumProfit")
-/*
-Standard deviation of the average cumulated profits across firms, across runs
-*/
-
-v[1]=V("Av_AvCumProfit");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvCumProfit");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_Avx")
-/*
-Standard deviation of the average quality characteristics across firms
-*/
-
-v[1]=V("Av_Avx");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"Avx");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_Sdx")
-/*
-Standard deviation of the standard deviation of quality characteristics across firms
-*/
-
-v[1]=V("Av_Sdx");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"Sdx");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_SdPrice")
-/*
-Standard deviation of the standard devaiton of price across firms
-*/
-
-v[1]=V("Av_SdPrice");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"SdPrice");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvtauQ")
-/*
-Standard deviation of the average value of tolerance toward quality characteristics
-*/
-
-v[1]=V("Av_AvtauQ");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvtauQ");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_AvtauP")
-/*
-Standard deviation of the average value of tolerance toward price characteristic
-*/
-
-v[1]=V("Av_AvtauP");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"AvtauP");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_SdtauQ")
-/*
-Standard deviation of the standard devaition of tolerance toward quality characteristics
-*/
-v[1]=V("Av_SdtauQ");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"SdtauQ");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_SdtauP")
-/*
-Standard deviation of the average value of tolerance toward quality characteristics
-*/
-
-v[1]=V("Av_SdtauP");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"SdtauP");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-
-EQUATION("Sd_HerfInd1")
-/*
-Standard deviation of the average value of Herfindal index in sector 1
-*/
-
-v[1]=V("Av_HerfInd1");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==1)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd2")
-/*
-Standard deviation of the average value of Herfindal index in sector 2
-*/
-
-v[1]=V("Av_HerfInd2");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==2)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd3")
-/*
-Standard deviation of the average value of Herfindal index in sector 3
-*/
-
-v[1]=V("Av_HerfInd3");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==3)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd4")
-/*
-Standard deviation of the average value of Herfindal index in sector 4
-*/
-
-v[1]=V("Av_HerfInd4");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==4)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd5")
-/*
-Standard deviation of the average value of Herfindal index in sector 5
-*/
-
-v[1]=V("Av_HerfInd5");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==5)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd6")
-/*
-Standard deviation of the average value of Herfindal index in sector 6
-*/
-
-v[1]=V("Av_HerfInd6");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==6)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd7")
-/*
-Standard deviation of the average value of Herfindal index in sector 7
-*/
-
-v[1]=V("Av_HerfInd7");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==7)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd8")
-/*
-Standard deviation of the average value of Herfindal index in sector 8
-*/
-
-v[1]=V("Av_HerfInd8");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==8)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd9")
-/*
-Standard deviation of the average value of Herfindal index in sector 9
-*/
-
-v[1]=V("Av_HerfInd9");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==9)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_HerfInd10")
-/*
-Standard deviation of the average value of Herfindal index in sector 10
-*/
-
-v[1]=V("Av_HerfInd10");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  CYCLES(cur, cur1, "Sectors")
-   {
-    v[9]=VS(cur1,"IdGood");
-    if(v[9]==10)
-     {
-      v[2]=VS(cur1,"HerfIndexS");
-      v[3]=v[2]-v[1];
-      v[4]=pow(v[3],2);
-      v[5]+=v[4];
-      v[6]++;
-     }    
-   }
-
-
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
-
-
-EQUATION("Sd_NSectors")
-/*
-Standard deviation of the average number of active setors (marketed needs) across simulations
-*/
-
-v[1]=V("Av_NSectors");
-v[5]=v[6]=0;
-CYCLE(cur, "Country")
- {
-  v[2]=VS(cur,"NSectors");
-  v[3]=v[2]-v[1];
-  v[4]=pow(v[3],2);
-  v[5]+=v[4];
-  v[6]++;
- }
-v[7]=v[5]/v[6];
-v[8]=sqrt(v[7]);
-
-RESULT(v[8] )
 
 
 

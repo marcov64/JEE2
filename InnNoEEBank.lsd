@@ -211,7 +211,7 @@ Label Root
 					Var: ShareWageIncome
 					Param: aEx
 					Var: SharePremiaIncome
-					Param: Savings
+					Var: Savings
 					Param: Lorenz
 					Var: ShareIncome
 					Param: Individuals
@@ -262,7 +262,7 @@ Label Root
 						Param: KLaborProductivity
 						Param: IdKLabor
 						Param: knu
-						Var: KWagePrem
+						Param: KPremia
 
 					}
 
@@ -324,6 +324,8 @@ Label Root
 					Param: kchoice
 					Param: AvKWage
 					Param: KConstPrice
+					Var: KWagePrem
+					Var: LaborCostK
 
 				}
 
@@ -331,6 +333,7 @@ Label Root
 				Param: AvKPrice
 				Param: AvCurrProd
 				Param: AvWaitTime
+				Param: DiscountUsedK
 
 			}
 
@@ -372,10 +375,10 @@ Label Root
 			Label Bank
 			{
 				Var: TotalSavings
-				Param: TotalLent
+				Param: TotalDebt
 				Param: ActiveInterestRate
 				Param: RationingRatio
-				Var: RationingKPurchases
+				Param: ProfitB
 
 			}
 
@@ -470,8 +473,8 @@ Label Root
 }
 
 
-
 DATA
+
 Object: Root C	1
 
 Object: Stats C	1
@@ -590,7 +593,7 @@ Param: backlogSales 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	
 Param: numBLI 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Var: Profit 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Var: UnitLaborCost 0 n + n n
-Var: InvestmentDecision 0 n + n n
+Var: InvestmentDecision 0 n + d n
 Param: Waiting 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Var: UnitDemand 0 n + n n
 Var: KapitalNeed 0 n + n n
@@ -663,7 +666,7 @@ Var: KAge 1 n + n n	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1	
 Param: KExpenditures 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Var: MaxKQ 0 n + n n
 Var: IncLearningK 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
-Param: ResellPrice 0 n - n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Param: ResellPrice 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 
 Object: Labor C	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2	2
 Var: NumWorkers 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
@@ -672,17 +675,17 @@ Param: SkillType 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: wagecoeff 0 n + n n	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2	1.1	2
 Param: IdLabor 0 n + n n	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2
 Param: nu 0 n + n n	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5
-Param: Premia 0 n - n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Param: Premia 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 
 Object: blItem C	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: blQ 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Param: blPrice 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 
 Object: BankF C	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
-Var: BalanceF 1 n - n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
-Param: DebtF 0 n - n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Var: BalanceF 1 n + n n	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100	100
+Param: DebtF 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Var: KPresentValue 0 n + n n
-Var: NetWorth 0 s + n n
+Var: NetWorth 1 s + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 
 Object: Demand C	1
 Var: IncomeDistribution 0 n + n n
@@ -706,7 +709,7 @@ Var: Expenditure 1 s + n n	100	100	100
 Var: ShareWageIncome 1 s + n n	0.33	0.33	0.33
 Param: aEx 0 n + n n	0.8	0.8	0.8
 Var: SharePremiaIncome 1 n + n n	0	0	1
-Param: Savings 1 s + n n	0	0	0
+Var: Savings 0 s + n n
 Param: Lorenz 0 n + n n	0	0	0
 Var: ShareIncome 1 n + n n	0.33	0.33	0.33
 Param: Individuals 0 s + n n	0	0	0
@@ -742,7 +745,7 @@ Param: tauMinW 0 n + n n	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1
 Param: tauMaxW 0 n + n n	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1
 
 Object: BankC C	1	1	1
-Var: BalanceC 1 n - n n	0	0	0
+Var: BalanceC 1 n + n n	0	0	0
 Var: RentsC 0 n + n n
 
 Object: Machinery C	1
@@ -750,6 +753,7 @@ Func: PlaceOrder 0 n + n n
 Param: AvKPrice 0 n + n n	15
 Param: AvCurrProd 0 n + n n	1
 Param: AvWaitTime 0 n + n n	0
+Param: DiscountUsedK 0 n + n n	0.5
 
 Object: KFirm C	10
 Param: IdKTech 0 n + n n	1	1	1	1	1	1	1	1	1	1
@@ -771,6 +775,8 @@ Param: WaitTime 0 n + n n	1	1	1	1	1	1	1	1	1	1
 Param: kchoice 0 n + n n	1	1	1	1	1	1	1	1	1	1
 Param: AvKWage 0 n + n n	0	0	0	0	0	0	0	0	0	0
 Param: KConstPrice 0 n + n n	0	0	0	0	0	0	0	0	0	0
+Var: KWagePrem 0 n + n n
+Var: LaborCostK 0 n + n n
 
 Object: KLabor C	2	2	2	2	2	2	2	2	2	2
 Var: KNbrWorkers 1 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
@@ -781,7 +787,7 @@ Param: KDesiredUnusedCapacity 0 n + n n	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	
 Param: KLaborProductivity 0 n + n n	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1
 Param: IdKLabor 0 n + n n	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2	1	2
 Param: knu 0 n + n n	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5	5
-Var: KWagePrem 0 n + n n
+Param: KPremia 0 n + n n	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 
 Object: KEngineers C	1	1	1	1	1	1	1	1	1	1
 Var: KNbrEngineers 1 n + n n	0	0	0	0	0	0	0	0	0	0
@@ -804,7 +810,7 @@ Param: KP 0 n + n n	0	0	0	0	0	0	0	0	0	0
 Object: BankK C	1	1	1	1	1	1	1	1	1	1
 Var: BalanceK 1 n + n n	0	0	0	0	0	0	0	0	0	0
 Param: KRevenues 0 n + n n	0	0	0	0	0	0	0	0	0	0
-Param: DebtK 0 n - n n	0	0	0	0	0	0	0	0	0	0
+Param: DebtK 0 n + n n	0	0	0	0	0	0	0	0	0	0
 
 Object: Sectors C	10
 Param: IdGood 0 n + n n	1	2	3	4	5	6	7	8	9	10
@@ -838,16 +844,16 @@ Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
 
 Object: Bank C	1
 Var: TotalSavings 0 s + n n
-Param: TotalLent 0 s - n n	0
-Param: ActiveInterestRate 0 n - n n	0
-Param: RationingRatio 0 s - n n	0
-Var: RationingKPurchases 0 n + n n
+Param: TotalDebt 0 s + n n	0
+Param: ActiveInterestRate 0 n + n n	0
+Param: RationingRatio 0 s + n n	0
+Param: ProfitB 0 n + n n	0
 
 SIM_NUM 1
-SEED 3
+SEED 5
 MAX_STEP 10000
 EQUATION fun_Cut3PPS.cpp
-MODELREPORT report_InnNoEEBank.html
+ MODELREPORT report_InnNoEEBank.html
 
 DESCRIPTION
 
@@ -1962,7 +1968,7 @@ END_DESCRIPTION
 Parameter_ResellPrice
 (no description available)
 _INIT_
-
+ All 100 instances equal to 1.
 END_DESCRIPTION
 
 Object_Labor
@@ -2040,7 +2046,7 @@ END_DESCRIPTION
 Variable_BalanceF
 (no description available)
 _INIT_
-
+ All 100 instances equal to 100.
 END_DESCRIPTION
 
 Parameter_DebtF
@@ -2058,7 +2064,7 @@ END_DESCRIPTION
 Variable_NetWorth
 (no description available)
 _INIT_
-
+ All 100 instances equal to 1.
 END_DESCRIPTION
 
 Object_Demand
@@ -2187,7 +2193,7 @@ _INIT_
 
 END_DESCRIPTION
 
-Parameter_Savings
+Variable_Savings
 (no description available)
 _INIT_
  All 3 instances equal to 0.
@@ -2429,6 +2435,12 @@ _INIT_
 
 END_DESCRIPTION
 
+Parameter_DiscountUsedK
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
 Object_KFirm
 (no description available )
 _INIT_
@@ -2549,6 +2561,18 @@ _INIT_
  All 4 instances equal to 0.
 END_DESCRIPTION
 
+Variable_KWagePrem
+(no description available)
+_INIT_
+ All 8 instances equal to 0.
+END_DESCRIPTION
+
+Variable_LaborCostK
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
 Object_KLabor
 (no description available )
 _INIT_
@@ -2603,10 +2627,10 @@ _INIT_
  All 20 instances equal to 5.
 END_DESCRIPTION
 
-Variable_KWagePrem
+Parameter_KPremia
 (no description available)
 _INIT_
- All 8 instances equal to 0.
+
 END_DESCRIPTION
 
 Object_KEngineers
@@ -2707,14 +2731,20 @@ END_DESCRIPTION
 
 Variable_BalanceK
 (no description available)
+_INIT_
+
 END_DESCRIPTION
 
 Parameter_KRevenues
 (no description available)
+_INIT_
+
 END_DESCRIPTION
 
 Parameter_DebtK
 (no description available)
+_INIT_
+
 END_DESCRIPTION
 
 Object_Sectors
@@ -2903,7 +2933,7 @@ _INIT_
 
 END_DESCRIPTION
 
-Parameter_TotalLent
+Parameter_TotalDebt
 (no description available)
 _INIT_
 
@@ -2921,7 +2951,7 @@ _INIT_
 
 END_DESCRIPTION
 
-Variable_RationingKPurchases
+Parameter_ProfitB
 (no description available)
 _INIT_
 
