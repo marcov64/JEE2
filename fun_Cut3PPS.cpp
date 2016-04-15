@@ -1422,8 +1422,8 @@ if(v[5]>0 && v[2]>0)
  }
 if(v[5]<0)
  {
-  INCR("DebtF",v[5]);
-  INCRS(p->hook,"TotalDebt",v[5]);
+  INCR("DebtF",-v[5]);
+  INCRS(p->hook,"TotalDebt",-v[5]);
   v[5]=0;
  } 
  
@@ -1471,7 +1471,7 @@ if(v[5]>0 && v[2]>0)
 if(v[5]<0)
  {
   INCR("DebtK",v[5]);
-  INCRS(p->hook,"TotalDebt",v[5]);
+  INCRS(p->hook,"TotalDebt",-v[5]);
   v[5]=0;
  } 
  
@@ -1784,7 +1784,7 @@ if(v[44]<v[3]*v[6])
 else
  v[63]=v[3];
 
-WRITES(c,"RationingRatioFirm",v[3]/v[63]); 
+WRITES(c,"RationingRatioFirm",v[63]/v[3]); 
 WRITES(cur1,"KAmount",v[63]);
 if(v[63]<0)
  INTERACT("Neg.KAmount",v[63]);
@@ -1854,9 +1854,10 @@ CYCLE_SAFE(cur, "Order")
       WRITES(cur->hook,"Waiting",0); //tell the firms it has the new capital
       SORTS(cur->hook,"Capital","IncProductivity", "DOWN");
       cur5=SEARCHS(cur->hook,"BankF");
-      INCRS(cur5,"DebtF",v[5]*v[11]);
+      INCRS(cur5,"DebtF",v[4]*v[11]);
+      INCRS(cur5->hook,"TotalDebt",v[4]*v[11]);
       cur5=SEARCH("BankK");
-      INCRS(cur5,"KRevenues",v[5]*v[11]);
+      INCRS(cur5,"KRevenues",v[4]*v[11]);
       
       WRITES(cur1,"ResellPrice",v[11]*V("DiscountUsedK"));
 
