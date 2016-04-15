@@ -974,7 +974,6 @@ v[0]=V("PremiaIncome");
 v[1]=V("WageIncome");
 v[3]=VL("ShareIncome",1);
 v[4]=V("ExIncome");
-v[1]=VL("Income",1)+v[3]*v[4];
 v[14]=V("RentsC");
 v[12]=V("NoConsumption");
 
@@ -1646,7 +1645,6 @@ if(v[0]==1)
 v[1]=V("KapitalNeed");
 if(v[1]>0)
  {
-//  v[2]=VL("NetWorth",1);
   v[3]=V("PlaceOrder");
   WRITE("Waiting",1);
  } 
@@ -1688,7 +1686,7 @@ EQUATION("PlaceOrder")
 Place the order from the calling firm to a Kapital producer adopting the technology of the firm
 */
 
-v[44]=VLS(c,"NetWorth",1);
+v[44]=VLS(c,"NetWorth",1)*V("PrudenceLending");
 v[0]=VS(c,"IdTech"); //this is the technology of the firm
 
 //assuming there are many firms producing K with the same technologies, firm select the one they prefer in terms of price and productivity of the capital, and waiting time (insert also durability of the capital if we include depreciation as a function of production quantity and not time)
@@ -1711,7 +1709,8 @@ CYCLE(cur, "KFirm")
   v[64]=VS(cur,"NumOrders");
 
   v[54]=VS(cur,"KQ");//number of productive workers
-  WRITES(cur,"WaitTime",ceil(v[3]/v[54]));
+  // WRITES(cur,"WaitTime",ceil(v[3]/v[54]));
+  WRITES(cur,"WaitTime",1);
   if(v[64]>0)
    {
     CYCLES(cur, cur1, "Order")
@@ -1725,6 +1724,8 @@ CYCLE(cur, "KFirm")
    }
 
   v[65]=VS(cur,"WaitTime");
+  if(v[65]<0)
+   INTERACTS(cur, "Neg. waittime", v[65]);
   v[58]+=v[65];
 // an index that gives the amount of time needed or a firm to complete the production of the capital already ordered
  }
