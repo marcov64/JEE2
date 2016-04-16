@@ -384,6 +384,7 @@ CYCLE(cur, "Supply")
     VS(cur1,"InvestmentDecision");
     v[5]+=VS(cur1,"Age");
     v[6]++;
+    VS(cur1,"WagePrem");
     
     v[8]=0;
     CYCLE_SAFES(cur1, cur2, "Labor")
@@ -405,6 +406,7 @@ CYCLE(cur, "KFirm")
    {
     v[4]=VS(cur1,"KWage");
     v[3]=VS(cur1,"KNbrWorkers");
+    VS(cur1,"KWagePrem");
     if(v[4]==0 && VS(cur2,"IdKLabor")!=1)
       DELETE(cur2);
    }
@@ -978,6 +980,7 @@ EQUATION("Income")
 /*
 Comment
 */
+V("Production");
 v[0]=V("PremiaIncome");
 v[1]=V("WageIncome");
 v[3]=VL("ShareIncome",1);
@@ -1085,6 +1088,7 @@ EQUATION("TotPremia")
 Total premia
 */
 
+V("Production");
 v[0]=0;
 
 CYCLE(cur, "Class")
@@ -1323,8 +1327,11 @@ v[1]=0;
 v[2]=V("CapitalDepress");//defines the depression rate of capital
 
 v[20]=0;
+v[30]=VL("Inflation",1);
 CYCLE_SAFE(cur, "Capital")
  {
+  MULTS(cur,"ResellPrice",(1+v[30]));
+
   v[3]=VS(cur,"K");
   v[4]=VS(cur,"KAge");
   v[5]=VS(cur, "IncProductivity");
@@ -1658,7 +1665,8 @@ if(v[0]==1)
 //we are here only if there is no pending order
 
 v[1]=V("KapitalNeed");
-if(v[1]>0)
+v[2]=VL("NetWorth",1);
+if(v[1]>0 && v[2]>0)
  {
   v[3]=V("PlaceOrder");
   WRITE("Waiting",1);
@@ -2247,7 +2255,13 @@ v[18]=VL("MovAvUnemp2",1);
 v[19]=V("aMWL"); //weight of unemployment on change in min wage
 v[20]=(v[17]/v[18])-1;
 
+/****
 v[5]=(1-v[19])*v[0]+v[19]*(v[0]*(1-v[20])); //change in min wage due to changes in the labour market (as proxy of labour (excess) demand) although it should include the available number of workers, or use the beveridge curve versione, or whatever..
+/***/
+v[30]=V("AvRatioVacancies");
+v[31]=min(v[30],1.02);  
+v[5]=(1-v[19])*v[0]+v[19]*(v[0]*(v[31])); 
+/*****/
 
 
 //if( (v[2]>v[12] || v[13]>v[16]))

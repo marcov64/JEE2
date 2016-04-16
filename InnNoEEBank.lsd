@@ -759,7 +759,7 @@ Param: AvKPrice 0 n + n n	15
 Param: AvCurrProd 0 n + n n	1
 Param: AvWaitTime 0 n + n n	0
 Param: DiscountUsedK 0 n + n n	0.5
-Param: PrudenceLending 0 n + n n	5
+Param: PrudenceLending 0 n + n n	1
 
 Object: KFirm C	10
 Param: IdKTech 0 n + n n	1	1	1	1	1	1	1	1	1	1
