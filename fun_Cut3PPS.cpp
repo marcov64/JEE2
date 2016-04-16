@@ -375,7 +375,7 @@ EQUATION("Production")
 After trading fix any remaining variable to compute
 */
 
-v[0]=v[1]=v[5]=v[6]=0;
+v[0]=v[1]=v[5]=v[6]=v[7]=v[8]=v[9]=0;
 CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
@@ -384,14 +384,19 @@ CYCLE(cur, "Supply")
     VS(cur1,"InvestmentDecision");
     v[5]+=VS(cur1,"Age");
     v[6]++;
+    
+    v[8]=0;
     CYCLE_SAFES(cur1, cur2, "Labor")
      {
-      v[4]=VS(cur2,"NumWorkers");  
+      v[4]=VS(cur2,"NumWorkers");
+      v[8]+=v[4];  
       //INCRS(cur2->hook,"tempWage",v[2]*v[4]);
       if(v[4]==0 && VS(cur2,"IdLabor")!=1)
        DELETE(cur2);
                
      }
+   v[9]+=v[8];  
+   v[7]+=VS(cur1,"RatioVacancies")*v[8];
    }
  }
 CYCLE(cur, "KFirm")
@@ -413,6 +418,7 @@ CYCLE(cur, "KFirm")
   } 
 */
 WRITE("AvAge",v[5]/v[6]);
+WRITE("AvRatioVacancies",v[7]/v[9]);
 RESULT(1 )
 
 
@@ -741,11 +747,13 @@ if(v[14]==1)
   v[2]=V("MaxLaborProductivity");
   v[8]=V("CapitalCapacity");
   v[9]=min(v[1],v[8]);
-  //v[2]=VL("MaxLaborProductivity",1);
   v[4]=V("DesiredUnusedCapacity");
   v[3]=v[4]*(v[9]/v[2]);
   v[5]=V("aNW");
   v[6]=v[0]*v[5]+(1-v[5])*v[3]; // number of workers in the first layer
+  
+  v[33]=v[4]*(v[1]/v[2]);
+  WRITES(p->up,"RatioVacancies",(v[33])/v[6]);
  }
 
 else
@@ -1119,6 +1127,13 @@ Share of total wage for this class
 v[0]=V("WageIncome");
 v[1]=VS(p->up,"TotWage");
 RESULT(v[0]/v[1] )
+
+EQUATION("ShareExIncome")
+/*
+Comment
+*/
+
+RESULT(V("ShareWageIncome") )
 
 
 EQUATION("SharePremiaIncome")
@@ -1656,7 +1671,7 @@ EQUATION("NetWorth")
 Measure of the value of the firm in case of sales
 */
 
-v[0]=V("KPresentValue");
+v[0]=V("KPresentValue")*V("PrudenceLending");
 v[1]=V("BalanceF");
 v[2]=V("DebtF");
 
@@ -1686,7 +1701,7 @@ EQUATION("PlaceOrder")
 Place the order from the calling firm to a Kapital producer adopting the technology of the firm
 */
 
-v[44]=VLS(c,"NetWorth",1)*V("PrudenceLending");
+v[44]=VLS(c,"NetWorth",1);
 v[0]=VS(c,"IdTech"); //this is the technology of the firm
 
 //assuming there are many firms producing K with the same technologies, firm select the one they prefer in terms of price and productivity of the capital, and waiting time (insert also durability of the capital if we include depreciation as a function of production quantity and not time)
@@ -2234,13 +2249,20 @@ v[20]=(v[17]/v[18])-1;
 
 v[5]=(1-v[19])*v[0]+v[19]*(v[0]*(1-v[20])); //change in min wage due to changes in the labour market (as proxy of labour (excess) demand) although it should include the available number of workers, or use the beveridge curve versione, or whatever..
 
-if(v[2]>v[12] && v[13]>v[16]) 
+
+//if( (v[2]>v[12] || v[13]>v[16]))
+if( (v[2]>v[12] || v[13]>v[16]) && v[13] > v[14])  
  { // discrete changes in the minimum wage occur when the wage is renegotiated due to changes in poductivity and in consumables prices
   v[3]=V("aMWA"); // weight of average productivity on changes in min wage
   v[4]=(v[2]/v[10])-1;
   v[21]=V("aMWP"); // weight of price on changes in min wage
   v[22]=(v[13]/v[14])-1;
-  v[5]=(1-v[19]-v[3]-v[21])*v[0]+v[19]*(v[0]*(1-v[20]))+v[3]*(v[0]*(1+v[4]))+v[21]*(v[0]*(1+v[22]));
+  //v[5]=(1-v[19]-v[3]-v[21])*v[0]+v[19]*(v[0]*(1-v[20]))+v[3]*(v[0]*(1+v[4]))+v[21]*(v[0]*(1+v[22]));
+  v[30]=V("AvRatioVacancies");
+  v[31]=min(v[30],1);
+  v[5]=(1-v[19]-v[3]-v[21])*v[0]+v[19]*(v[0]*(v[31]))+v[3]*(v[0]*(1+v[4]))+v[21]*(v[0]*(1+v[22]));
+  sprintf(msg, " %lf", v[5]-v[0]);
+  plog(msg);
   WRITE("InitAggProd",v[2]);
   WRITE("InitAvPrice",v[13]);
  }
@@ -2309,7 +2331,8 @@ Exponential Moving Average of the aggregate productivity
 */
 
 v[1]=VL("MovAvAggProd",1);
-v[2]=VL("AggProductivity",1);
+//v[2]=VL("AggProductivity",1);
+v[2]=VL("AvCurrentProductivity",0);
 v[3]=V("aAgProd");
 v[4]=v[3]*v[2]+(1-v[3])*v[1];
 
