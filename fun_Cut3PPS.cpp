@@ -754,7 +754,7 @@ if(v[14]==1)
   v[5]=V("aNW");
   v[6]=v[0]*v[5]+(1-v[5])*v[3]; // number of workers in the first layer
   
-  v[33]=v[4]*(v[1]/v[2]);
+  v[33]=v[4]*(v[9]/v[2]);
   WRITES(p->up,"RatioVacancies",(v[33])/v[6]);
  }
 
