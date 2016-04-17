@@ -563,7 +563,7 @@ v[1]=V("UnitDemand");
 v[2]=VL("backlog",1);
 v[3]=VL("Stocks",1);
 WRITE("backlogSales",0);
-v[24]=v[23]=0;
+v[24]=v[23]=v[77]=0;
 if(v[0]>v[1]+v[3] && v[2]>0)
  {//fill some orders reducing the backlog
  // if(v[3]>0)
@@ -571,32 +571,50 @@ if(v[0]>v[1]+v[3] && v[2]>0)
   v[7]=v[0]-v[1]; //excess production available to fill backlog orders 
   v[5]=v[6]=0;
   v[9]=V("numBLI");
-  CYCLE_SAFE(cur, "blItem")
-   {
-    v[4]=VS(cur,"blQ");
-    v[8]=VS(cur,"blPrice");
-    if(v[4]<=v[7])
-     {//Q sufficient to fill completely the order
-      v[24]++;
-      v[5]+=v[4];//Q filled
-      v[6]+=v[4]*v[8];//sales produced
-      v[7]-=v[4];
-//      INTERACTS(cur, "Test2", v[7]);
-      v[10]=INCR("numBLI",-1);
-      if(v[10]>0)
-       DELETE(cur);
-      else
-       WRITES(cur,"blQ",0); 
+  if(v[9]>0)
+  {
+    CYCLE_SAFE(cur, "blItem")
+     {
+      v[4]=VS(cur,"blQ");
+      v[8]=VS(cur,"blPrice");
+      if(v[4]<=v[7])
+       {//Q sufficient to fill completely the order
+        v[24]++;
+        v[5]+=v[4];//Q filled
+        v[6]+=v[4]*v[8];//sales produced
+        v[7]-=v[4];
+  //      INTERACTS(cur, "Test2", v[7]);
+        v[10]=INCR("numBLI",-1);
+        if(v[10]>0)
+         DELETE(cur);
+        else
+        {
+         WRITES(cur,"blQ",0);
+         v[77]=1;
+         } 
+       }
+      else 
+       {v[23]++;
+        v[11]=v[4]-v[7];//units remaining in the BL
+        v[5]+=v[7]; //units sold
+        v[6]+=v[7]*v[8];
+        INCRS(cur,"blQ",-v[7]);
+        v[7]=0;
+       }    
      }
-    else 
-     {v[23]++;
-      v[11]=v[4]-v[7];//units remaining in the BL
-      v[5]+=v[7]; //units sold
-      v[6]+=v[7]*v[8];
-      INCRS(cur,"blQ",-v[7]);
-      v[7]=0;
-     }    
-   }
+    } 
+ /****   
+  v[78]=v[79]=0; 
+  CYCLE(cur, "blItem")
+    {v[78]++;
+     if(VS(cur,"blQ")==0)
+      {
+       v[79]++;
+      } 
+    } 
+  if(v[78]-v[79]!=V("numBLI") )
+   INTERACT("WRONG numBLI",v[78]);
+ ***********/     
   v[2]-=v[5];
   WRITE("backlogSales",v[6]);
   v[21]=1;
@@ -614,8 +632,9 @@ if(v[0]+v[3]<v[1])
   v[2]+=v[1]-v[0]-v[3];
   v[21]=2; 
  }
-if(v[2]<-0.001)
- INTERACT("Neg.bl",v[7]);
+ 
+//if(v[2]<-0.001) 
+ //INTERACT("Neg.bl",v[7]);
  
 v[22]=0;
 /*
@@ -2274,8 +2293,8 @@ if( (v[2]>v[12] || v[13]>v[16]) && v[13] > v[14])
   v[30]=V("AvRatioVacancies");
   v[31]=min(v[30],1);
   v[5]=(1-v[19]-v[3]-v[21])*v[0]+v[19]*(v[0]*(v[31]))+v[3]*(v[0]*(1+v[4]))+v[21]*(v[0]*(1+v[22]));
-  sprintf(msg, " %lf", v[5]-v[0]);
-  plog(msg);
+  //sprintf(msg, " %lf", v[5]-v[0]);
+  //plog(msg);
   WRITE("InitAggProd",v[2]);
   WRITE("InitAvPrice",v[13]);
  }
