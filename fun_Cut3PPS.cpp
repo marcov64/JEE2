@@ -34,14 +34,13 @@ Values close to 0 approach exit, 1 is perfect health.
 */
 v[2]=V("aHealth");
 
-v[1]=V("BalanceF");
+v[1]=V("NetWorth");
 if(v[1]>=0)
  END_EQUATION(v[2]*CURRENT+ (1-v[2]));
 
-v[3]=-v[1]; 
 v[0]=V("smoothMonSales");
 
-v[4]=min(1,v[0]/v[3]);//minimum between 1 and the ration of sales to (neg.) profits
+v[4]=min(1,v[0]/v[1]);//minimum between 1 and the ration of sales to (neg.) profits
 
 v[5]=v[2]*CURRENT+(1-v[2])*v[4];
 
@@ -87,7 +86,7 @@ WRITES(cur,"wagecoeff",2);
 cur->hook=cur4;
 
 cur2=SEARCHS(cur1,"BankF");
-cur3=SEARCH("Bank");
+cur3=SEARCHS(p->up,"Bank");
 cur2->hook=cur3;
 
 RESULT( 1)
