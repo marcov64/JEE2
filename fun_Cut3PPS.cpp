@@ -19,10 +19,9 @@ cur1=SEARCHS(p->up,"Demand");
 
 CYCLES(cur1,cur, "Class")
  {
-  v[0]+=VS(cur,"Savings");
+  v[0]+=VS(cur,"BalanceC");
  }
-v[2]=V("ProfitB");
-WRITE("ProfitB",0);
+
 RESULT(v[0]+v[2] )
 
 
@@ -124,11 +123,15 @@ CYCLE_SAFE(cur, "Firm")
      {v[5]=VS(cur,"Age");
       INCRS(cur->hook,"AvAgeDeath",v[5]);
       INCRS(cur->hook,"numExit",1);      
+      cur2=SEARCHS(cur,"BankF");
+      v[20]=VS(cur2,"DebtF");
+      INCRS(cur2->hook,"TotalDebt",-v[20]);
       DELETE(cur);
       v[4]++;
      }
    }
  }
+
 
 RESULT(v[4] )
 
@@ -498,6 +501,8 @@ CYCLE(cur, "Class")
      }
    }
  }
+cur=SEARCH("Bank");
+WRITES(cur,"ProfitB",0); 
 RESULT( 1)
 
 EQUATION("UnitDemand")
@@ -818,7 +823,7 @@ else
       WRITELS(cur3,"ShareWageIncome",0, t-1);
       WRITELS(cur3,"SharePremiaIncome",0, t-1);
       //WRITELS(cur3,"ShareProfitIncome",0, t-1);
-      WRITELS(cur3,"Savings",0, t-1);
+//      WRITELS(cur3,"Savings",0, t-1);
       // WRITELS(cur3,"NumIterations",0, t-1); to reactivate when NumIterations report the number of consumers in the labour class, as given in equation "ShareWageIncome". Otherwise the number of iterations simply define the number of representative conusmers (groups) in a class
       WRITELS(cur3,"ShareIncome",0, t-1); // reset the share income to be recomputed
       WRITES(cur3,"Individuals",v[20]); // set the number of individuals to nu;ber of workers of the new class
@@ -1009,31 +1014,34 @@ v[12]=V("NoConsumption");
 v[5]=v[0]+v[1]+v[3]*v[4]+v[14]+v[12];
 RESULT(v[5])
 
+EQUATION("Consumption")
+/*
+Desired level of consumption
+*/
+
+v[0]=VL("Income",1);
+v[1]=V("SavingRate");
+v[2]=v[0]*(1-v[1]);
+
+RESULT(v[2] )
+
 
 EQUATION("Expenditure")
 /*
 Total money spent by consumers, computed as a combination of past consumption and available resources (from wages and stock options)
 */
 v[0]=VL("Expenditure",1);
-v[1]=VL("Income",1);
+v[1]=V("Consumption");
 v[2]=V("aEx");
 v[10]=v[0]*v[2]+(1-v[2])*(v[1]);
 RESULT(v[10] )
-
-EQUATION("Savings")
-/*
-Comment
-*/
-v[0]=V("Income");
-v[1]=V("Expenditure");
-v[2]=v[0]-v[1];
-RESULT(v[2] )
 
 EQUATION("RentsC")
 /*
 Rents provided by savings account
 */
 
+/*
 v[0]=VL("BalanceC",1);
 v[1]=V("InterestRate");
 
@@ -1042,8 +1050,19 @@ if(v[0]>0)
 else
  v[2]=0;
 INCRS(p->hook,"ProfitB",-v[2]);
- 
-RESULT(v[2])
+*/
+
+v[0]=VL("BalanceC",1);
+if(v[0]<0)
+ END_EQUATION(0);
+cur=SEARCH("BankC");
+v[1]=VLS(cur->hook,"TotalSavings",1);
+v[2]=VS(cur->hook,"ProfitB");
+if(v[1]>0)
+ v[4]=v[2]*v[0]/v[1];
+else
+ v[4]=0;
+RESULT(v[4])
 
 EQUATION("BalanceC")
 /*
@@ -1053,7 +1072,8 @@ v[0]=VL("BalanceC",1);
 v[1]=V("Income");
 v[2]=V("Expenditure");
 
-RESULT(v[2] )
+v[3]=v[0]+v[1]-v[2];
+RESULT(v[3] )
 
 
 EQUATION("IncomeCapita")
@@ -2184,7 +2204,7 @@ else
       WRITELS(cur3,"ShareWageIncome",0, t-1);
       WRITELS(cur3,"SharePremiaIncome",0, t-1);
       //WRITELS(cur3,"ShareProfitIncome",0, t-1);
-      WRITELS(cur3,"Savings",0, t-1);
+ //     WRITELS(cur3,"Savings",0, t-1);
       // WRITELS(cur3,"NumIterations",0, t-1); to reactivate when NumIterations report the number of consumers in the labour class, as given in equation "ShareWageIncome". Otherwise the number of iterations simply define the number of representative conusmers (groups) in a class
       WRITELS(cur3,"ShareIncome",0, t-1); // reset the share income to be recomputed
       WRITES(cur3,"Individuals",v[20]); // set the number of individuals to nu;ber of workers of the new class

@@ -212,7 +212,6 @@ Label Root
 					Var: ShareWageIncome
 					Param: aEx
 					Var: SharePremiaIncome
-					Var: Savings
 					Param: Lorenz
 					Var: ShareIncome
 					Param: Individuals
@@ -226,6 +225,8 @@ Label Root
 					Param: WageIncome
 					Param: tempWage
 					Var: IncomeCapita
+					Var: Consumption
+					Param: SavingRate
 
 				}
 
@@ -714,7 +715,6 @@ Var: Expenditure 1 s + n n	100	100	100
 Var: ShareWageIncome 1 s + n n	0.33	0.33	0.33
 Param: aEx 0 n + n n	0.8	0.8	0.8
 Var: SharePremiaIncome 1 n + n n	0	0	1
-Var: Savings 0 s + n n
 Param: Lorenz 0 n + n n	0	0	0
 Var: ShareIncome 1 n + n n	0.33	0.33	0.33
 Param: Individuals 0 s + n n	0	0	0
@@ -728,6 +728,8 @@ Param: PremiaIncome 0 n + n n	0	0	0
 Param: WageIncome 1 s + n n	0	0	0
 Param: tempWage 0 n + n n	0	0	0
 Var: IncomeCapita 0 s + n n
+Var: Consumption 0 s + n n
+Param: SavingRate 0 n + n n	0.15	0.15	0.15
 
 Object: Need C	10	10	10
 Param: IdNeed 0 n + n n	1	2	3	4	5	6	7	8	9	10	1	2	3	4	5	6	7	8	9	10	1	2	3	4	5	6	7	8	9	10
@@ -750,8 +752,8 @@ Param: tauMinW 0 n + n n	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1
 Param: tauMaxW 0 n + n n	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1	0.9	0.1
 
 Object: BankC C	1	1	1
-Var: BalanceC 1 n + n n	0	0	0
-Var: RentsC 0 n + n n
+Var: BalanceC 1 s + n n	0	0	0
+Var: RentsC 0 s + n n
 
 Object: Machinery C	1
 Func: PlaceOrder 0 n + n n
@@ -849,17 +851,17 @@ Param: SKProductivity 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
 
 Object: Bank C	1
-Var: TotalSavings 0 s + n n
+Var: TotalSavings 1 s + n n	0
 Param: TotalDebt 0 s + n n	0
 Param: ActiveInterestRate 0 n + n n	0.06
 Param: RationingRatio 0 s + n n	0
-Param: ProfitB 0 n + n n	0
+Param: ProfitB 0 s + n n	0
 
 SIM_NUM 1
 SEED 3
 MAX_STEP 10000
 EQUATION fun_Cut3PPS.cpp
- MODELREPORT report_InnNoEEBank.html
+ MODELREPORT report_InnEEInnXBank.html
 
 DESCRIPTION
 
@@ -2211,12 +2213,6 @@ _INIT_
 
 END_DESCRIPTION
 
-Variable_Savings
-(no description available)
-_INIT_
- All 3 instances equal to 0.
-END_DESCRIPTION
-
 Parameter_Lorenz
 Data to anlayse fot he Lorent curve
 _INIT_
@@ -2295,6 +2291,18 @@ Variable_IncomeCapita
 (no description available)
 _INIT_
 
+END_DESCRIPTION
+
+Variable_Consumption
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
+Parameter_SavingRate
+(no description available)
+_INIT_
+ All 3 instances equal to 0.15.
 END_DESCRIPTION
 
 Object_Need
@@ -2977,7 +2985,9 @@ END_DESCRIPTION
 
 Parameter_ProfitB
 (no description available)
+
 _INIT_
+
 
 END_DESCRIPTION
 
