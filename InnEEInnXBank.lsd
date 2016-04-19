@@ -162,6 +162,7 @@ Label Root
 				Var: Exit
 				Func: CounterIdFirm
 				Param: coefMarkupVar
+				Param: TotDebt
 
 			}
 
@@ -245,6 +246,7 @@ Label Root
 				Var: TotIncomeCapita
 				Param: InterestRate
 				Param: ExIncome
+				Param: ShareSavingsConsumed
 
 			}
 
@@ -575,9 +577,10 @@ Param: innoInterval 0 n + n n	10
 Param: aLearningK 0 n + n n	0
 Param: minMarkup 0 n + n n	0.15
 Func: Entry 0 n + n n
-Var: Exit 0 n + n n
+Var: Exit 0 n + d n
 Func: CounterIdFirm 1 n + n n	100
 Param: coefMarkupVar 0 n + n n	0.2
+Param: TotDebt 0 s + n n	0
 
 Object: Firm C	100
 Param: IdFirm 0 n + n n	1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16	17	18	19	20	21	22	23	24	25	26	27	28	29	30	31	32	33	34	35	36	37	38	39	40	41	42	43	44	45	46	47	48	49	50	51	52	53	54	55	56	57	58	59	60	61	62	63	64	65	66	67	68	69	70	71	72	73	74	75	76	77	78	79	80	81	82	83	84	85	86	87	88	89	90	91	92	93	94	95	96	97	98	99	100
@@ -708,6 +711,7 @@ Var: AvIncome 0 s + n n
 Var: TotIncomeCapita 0 s + n n
 Param: InterestRate 0 n + n n	0.05
 Param: ExIncome 0 n + n n	200
+Param: ShareSavingsConsumed 0 n + n n	0.05
 
 Object: Class C	3
 Param: NumClass 0 n + n n	0	1	2
@@ -723,7 +727,7 @@ Func: ComputeShare 0 n + n n
 Param: NoConsumption 0 n + n n	0	0	0
 Var: TotIterations 0 n + n n
 Var: ShareExIncome 0 n + n n
-Var: Income 1 s + d n	100	100	100
+Var: Income 1 n + n n	100	100	100
 Param: PremiaIncome 0 n + n n	0	0	0
 Param: WageIncome 1 s + n n	0	0	0
 Param: tempWage 0 n + n n	0	0	0
@@ -768,7 +772,7 @@ Param: IdKTech 0 n + n n	1	1	1	1	1	1	1	1	1	1
 Var: KQ 0 n + n n
 Param: NumOrders 0 n + n n	0	0	0	0	0	0	0	0	0	0
 Param: kapp 0 n + n n	0	0	0	0	0	0	0	0	0	0
-Var: KProductionFlow 0 n + n n
+Var: KProductionFlow 0 s + n n
 Var: KPrice 1 n + n n	1	1	1	1	1	1	1	1	1	1
 Param: z 0 n + n n	10000	10000	10000	10000	10000	10000	10000	10000	10000	10000
 Param: ProductivityShock 0 n + n n	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01	0.01
@@ -853,7 +857,7 @@ Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Object: Bank C	1
 Var: TotalSavings 1 s + n n	0
 Param: TotalDebt 0 s + n n	0
-Param: ActiveInterestRate 0 n + n n	0.06
+Param: ActiveInterestRate 0 n + n n	0.03
 Param: RationingRatio 0 s + n n	0
 Param: ProfitB 0 s + n n	0
 
@@ -1436,6 +1440,12 @@ _INIT_
 END_DESCRIPTION
 
 Parameter_coefMarkupVar
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
+Parameter_TotDebt
 (no description available)
 _INIT_
 
@@ -2175,6 +2185,12 @@ Parameter_ExIncome
 Exogenous income
 _INIT_
  All 5 instances increasing from 100 with steps 100. The value is increased every 1 instances.
+END_DESCRIPTION
+
+Parameter_ShareSavingsConsumed
+(no description available)
+_INIT_
+
 END_DESCRIPTION
 
 Object_Class
@@ -2985,9 +3001,7 @@ END_DESCRIPTION
 
 Parameter_ProfitB
 (no description available)
-
 _INIT_
-
 
 END_DESCRIPTION
 

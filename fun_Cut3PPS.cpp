@@ -110,7 +110,7 @@ Remove firms with too poor Health
 */
 
 V("ClearExitRecord");
-v[4]=0;
+v[4]=v[70]=0;
 CYCLE_SAFE(cur, "Firm")
  {
 
@@ -119,20 +119,21 @@ CYCLE_SAFE(cur, "Firm")
    {
     v[2]=VS(cur->hook,"minHealth");
     v[3]=VS(cur,"Health");
+    cur2=SEARCHS(cur,"BankF");
+    v[20]=VS(cur2,"DebtF");
+    v[70]+=v[20];
     if(v[3]<v[2])
      {v[5]=VS(cur,"Age");
       INCRS(cur->hook,"AvAgeDeath",v[5]);
       INCRS(cur->hook,"numExit",1);      
-      cur2=SEARCHS(cur,"BankF");
-      v[20]=VS(cur2,"DebtF");
-      INCRS(cur2->hook,"TotalDebt",-v[20]);
+       INCRS(cur2->hook,"TotalDebt",-v[20]);
       DELETE(cur);
       v[4]++;
      }
    }
  }
 
-
+WRITE("TotDebt",v[70]);
 RESULT(v[4] )
 
 EQUATION("Demography")
@@ -377,7 +378,7 @@ EQUATION("Production")
 After trading fix any remaining variable to compute
 */
 
-v[0]=v[1]=v[5]=v[6]=v[7]=v[8]=v[9]=0;
+v[0]=v[1]=v[5]=v[6]=v[7]=v[8]=v[9]=v[70]=0;
 CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
@@ -412,6 +413,7 @@ CYCLE(cur, "KFirm")
     if(v[4]==0 && VS(cur2,"IdKLabor")!=1)
       DELETE(cur2);
    }
+  v[70]+=VS(cur,"DebtK"); 
  }
 /* 
  v[5]=V("TotPremia");
@@ -423,6 +425,7 @@ CYCLE(cur, "KFirm")
 */
 WRITE("AvAge",v[5]/v[6]);
 WRITE("AvRatioVacancies",v[7]/v[9]);
+
 RESULT(1 )
 
 
@@ -1022,8 +1025,14 @@ Desired level of consumption
 v[0]=VL("Income",1);
 v[1]=V("SavingRate");
 v[2]=v[0]*(1-v[1]);
+v[3]=VL("BalanceC",1);
+v[6]=max(0,v[3]);
+v[4]=V("ShareSavingsConsumed");
 
-RESULT(v[2] )
+
+v[5]=v[2]+v[6]*v[4];
+
+RESULT(v[5] )
 
 
 EQUATION("Expenditure")
@@ -1055,14 +1064,20 @@ INCRS(p->hook,"ProfitB",-v[2]);
 v[0]=VL("BalanceC",1);
 if(v[0]<0)
  END_EQUATION(0);
+
 cur=SEARCH("BankC");
+v[6]=VS(cur->hook,"ActiveInterestRate");
+v[5]=v[6]*v[0];
+
 v[1]=VLS(cur->hook,"TotalSavings",1);
 v[2]=VS(cur->hook,"ProfitB");
 if(v[1]>0)
  v[4]=v[2]*v[0]/v[1];
 else
  v[4]=0;
-RESULT(v[4])
+v[7]=v[5]+v[4];
+
+RESULT(v[7])
 
 EQUATION("BalanceC")
 /*
@@ -1465,7 +1480,7 @@ v[1]=V("WagePrem");
 v[2]=V("DebtF");
 if(v[2]>0)
 {
- v[3]=V("ActiveInterestRate");
+ v[3]=V("InterestRate");
  v[4]=v[3]*v[2];
  INCRS(p->hook,"ProfitB",v[4]);
 }
@@ -1475,13 +1490,13 @@ v[5]=v[0]-v[1]-v[4]+VL("BalanceF",1); //total liquidity after premia and interes
 if(v[5]>0 && v[2]>0)
  {
   v[6]=min(v[2],v[5]);
-  INCR("DebtF",-v[6]);
+  INCR("DebtF",-v[6]); // sprintf(msg, " B(%g)\n", -v[6]); plog(msg);
   INCRS(p->hook,"TotalDebt",-v[6]);
   v[5]-=v[6];
  }
 if(v[5]<0)
  {
-  INCR("DebtF",-v[5]);
+  INCR("DebtF",-v[5]); // sprintf(msg, " B2(%g)\n", -v[5]); plog(msg);
   INCRS(p->hook,"TotalDebt",-v[5]);
   v[5]=0;
  } 
@@ -1513,7 +1528,7 @@ v[10]=V("LaborCostK");
 v[2]=V("DebtK");
 if(v[2]>0)
 {
- v[3]=V("ActiveInterestRate");
+ v[3]=V("InterestRate");
  v[4]=v[3]*v[2];
  INCRS(p->hook,"ProfitB",v[4]);
 }
@@ -1529,7 +1544,7 @@ if(v[5]>0 && v[2]>0)
  }
 if(v[5]<0)
  {
-  INCR("DebtK",v[5]);
+  INCR("DebtK",-v[5]);
   INCRS(p->hook,"TotalDebt",-v[5]);
   v[5]=0;
  } 
@@ -1916,7 +1931,7 @@ CYCLE_SAFE(cur, "Order")
       WRITES(cur->hook,"Waiting",0); //tell the firms it has the new capital
       SORTS(cur->hook,"Capital","IncProductivity", "DOWN");
       cur5=SEARCHS(cur->hook,"BankF");
-      INCRS(cur5,"DebtF",v[4]*v[11]);
+      INCRS(cur5,"DebtF",v[4]*v[11]); // sprintf(msg, " KF(%g)\n", v[4]*v[11]); plog(msg);  
       INCRS(cur5->hook,"TotalDebt",v[4]*v[11]);
       cur5=SEARCH("BankK");
       INCRS(cur5,"KRevenues",v[4]*v[11]);
