@@ -576,8 +576,8 @@ Param: TotalSales 0 n + n n	0
 Param: innoInterval 0 n + n n	10
 Param: aLearningK 0 n + n n	0
 Param: minMarkup 0 n + n n	0.15
-Func: Entry 0 n + n n
-Var: Exit 0 n + d n
+Func: Entry 0 n + d n
+Var: Exit 0 n + n n
 Func: CounterIdFirm 1 n + n n	100
 Param: coefMarkupVar 0 n + n n	0.2
 Param: TotDebt 0 s + n n	0
@@ -849,7 +849,7 @@ Param: SMonetarySales 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SAvHealth 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SAvBacklog 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SAvStock 0 s + n n	0	0	0	0	0	0	0	0	0	0
-Param: numExit 0 n + n n	0	0	0	0	0	0	0	0	0	0
+Param: numExit 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: AvAgeDeath 0 s + d n	0	0	0	0	0	0	0	0	0	0
 Param: SKProductivity 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
@@ -1423,12 +1423,14 @@ END_DESCRIPTION
 
 Function_Entry
 (no description available)
+
 _INIT_
 
 END_DESCRIPTION
 
 Variable_Exit
 (no description available)
+
 _INIT_
 
 END_DESCRIPTION

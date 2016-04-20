@@ -84,10 +84,29 @@ cur4=SEARCH_CND("NumClass",2);
 WRITES(cur,"wagecoeff",2);
 cur->hook=cur4;
 
+v[4]=V("MinWage");
+CYCLES(cur1, cur2, "Labor")
+ {
+  
+  v[5]=VS(cur2,"wagecoeff");
+  v[6]=v[5]*v[4];
+  WRITELS(cur2,"wage",v[6],t);
+  v[4]=v[6];
+  
+ }
+
 cur2=SEARCHS(cur1,"BankF");
 cur3=SEARCHS(p->up,"Bank");
 cur2->hook=cur3;
 
+v[7]=VS(cur1->hook,"SRevenues");
+v[8]=VS(cur1->hook,"SNumFirms");
+v[9]=(v[7]/v[8])*0.1;
+WRITELS(cur2,"BalanceF",v[9], t);
+
+v[10]=V("AvCurrProd");
+cur4=SEARCHS(cur1,"Capital");
+WRITES(cur4,"IncProductivity",v[10]);
 RESULT( 1)
 
 
@@ -215,8 +234,19 @@ EQUATION("Visibility")
 /*
 Comment
 */
+v[0]=V("backlog");
+v[1]=CURRENT;
+v[2]=V("MonetarySales");
+if(v[2]<1)
+ v[2]=1;
 
-RESULT(CURRENT*0.9+0.1 )
+v[3]=(v[2]-v[0])/v[2];
+
+v[4]=max(v[3],0.1);
+
+v[5]=v[1]*0.9+0.1*v[4];
+//CURRENT*0.9+0.1
+RESULT(v[5] )
 
 
 EQUATION("TTB_multiplWinner")
@@ -263,7 +293,7 @@ CYCLE(cur, "Firm")
  v[24]=1; //assume the option to be viable
  //cur3=SEARCH_CNDS(cur,"IdPNeed",v[30]);
  v[37]=VS(cur,"product");
- if(v[37]!=v[30] || RND>VS(cur,"Visibility"))
+ if(v[37]!=v[30] || RND>VLS(cur,"Visibility",1))
   {// if the the firm does not produce the product the consumer is looking for, exclude it from the avaialble options
    WRITES(cur,"app",0);
   }
