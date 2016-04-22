@@ -34,9 +34,12 @@ Values close to 0 approach exit, 1 is perfect health.
 v[2]=V("aHealth");
 
 v[1]=V("NetWorth");
-if(v[1]>=0)
+if(v[1]>0)
+ {
  END_EQUATION(v[2]*CURRENT+ (1-v[2]));
-
+ }
+else
+ END_EQUATION(v[2]*CURRENT);
 v[0]=V("smoothMonSales");
 
 v[4]=min(1,v[0]/v[1]);//minimum between 1 and the ration of sales to (neg.) profits
@@ -101,7 +104,7 @@ cur2->hook=cur3;
 
 v[7]=VS(cur1->hook,"SRevenues");
 v[8]=VS(cur1->hook,"SNumFirms");
-v[9]=(v[7]/v[8])*0.1;
+v[9]=(v[7]/v[8]);
 WRITELS(cur2,"BalanceF",v[9], t);
 
 v[10]=V("AvCurrProd");
@@ -113,7 +116,7 @@ RESULT( 1)
 EQUATION("ClearExitRecord")
 /*
 Prepare the computation of the exit record
-*/
+*/	
 
 CYCLE(cur, "Sectors")
  {
@@ -245,7 +248,7 @@ v[3]=(v[2]-v[0])/v[2];
 v[4]=max(v[3],0.1);
 
 v[5]=v[1]*0.9+0.1*v[4];
-//CURRENT*0.9+0.1
+v[5]=CURRENT*0.9+0.1;
 RESULT(v[5] )
 
 
@@ -265,80 +268,53 @@ All options scoring more than tau times the max value for the current characteri
 Before starting the selection procedure, options are scanned to remove those scoring less than a minimum on some characteristic.
 */
 
-V("MinimumPriceSet"); // make sure the minimum parameter for the price characteristic has been set
+//V("MinimumPriceSet"); // make sure the minimum parameter for the price characteristic has been set
 v[0]=0;
 v[31]=VS(c->up,"Expenditure")/VS(c->up,"TotIterations"); //amount to spend on this iteration
 v[30]=VS(c,"IdNeed");
-//cur4=SEARCH_CND("IdSector",v[30]); // search for the sector that produces the good that satisfies the need that the iteration is buying
-/*
-v[38]=0;
-CYCLE(cur, "Firm")
- { // compute the number of firms producing the product that satisfy the need the consumer is looking for
-  v[37]=VS(cur,"product"); // the product (addressing a particular need) the firm is producing
-  if(v[37]==v[30])
-    v[38]++; 
- }
-//v[35]=SUMS(cur4,"IdFirm"); // check if there is any firm producing the good
-if(v[38]<1)
- { // if there is no firm in the sector
-  v[36]=INCRS(c->up,"NoConsumption",v[31]); // add this expenditure to the savings
-  END_EQUATION(-2); // exit the purchase and move to next one
- }
- // in all other cases continue the purhase
-*/
-//select out the options scoring less than the minimum on some characteristic
-//|| RND < VS(cur,"backlog")/VLS(cur,"Q",1)
-CYCLE(cur, "Firm")
-{
- v[24]=1; //assume the option to be viable
- //cur3=SEARCH_CNDS(cur,"IdPNeed",v[30]);
- v[37]=VS(cur,"product");
- if(v[37]!=v[30] || RND>VLS(cur,"Visibility",1))
-  {// if the the firm does not produce the product the consumer is looking for, exclude it from the avaialble options
-   WRITES(cur,"app",0);
-  }
- else
-  { // if the firm produces the required good
-   CYCLES(cur, cur1, "Ch")
-    {//for any characteristic
-     v[20]=VS(cur1,"IdCh");
-     cur2=SEARCH_CNDS(c,"IdDCh",v[20]); //find the ch. of the option you are browsing
-     v[4]=VS(cur2,"Delta"); // observation error in the quality of the good
-  
-     v[21]=VS(cur2,"Minimum"); // this is the minimum for the consumer on this characteristic
-     v[22]=VS(cur1,"x");
-     v[23]=norm(v[22],v[4]*v[22]); //this is the observed value
-     WRITES(cur1,"obs_x",v[23]); //write the observed value   
-     v[25]=VS(cur2,"NegativeQuality"); //
-     if(v[21]*v[25]>v[23]*v[25]) //
-      { //option too low
-       v[24]=0;
-       break;
-      }
-  
+
+CYCLES(c, cur, "DCh")
+  WRITES(cur,"temp",-1);//set to -1 the max value
+
+v[72]=1;
+while(v[0]==0)
+{//repeat for increasing levels of visibility as long no firms have been found
+  CYCLE(cur, "Firm")
+  {
+   v[24]=1; //assume the option to be viable
+   //cur3=SEARCH_CNDS(cur,"IdPNeed",v[30]);
+   v[37]=VS(cur,"product");
+   if(v[37]!=v[30] || RND>VLS(cur,"Visibility",1)*v[72])
+    {// if the the firm does not produce the product the consumer is looking for, exclude it from the avaialble options
+     WRITES(cur,"app",0);
     }
-    if(v[24]==1)
-     { //option viable
-      WRITES(cur,"app",1);
-      v[0]++;
-     }
-    else
-      WRITES(cur,"app",0);
-  }
-}	
-if(v[0]==0) //no option viable
- {
-  v[34]=INCRS(c->up,"NoConsumption",v[31]); /// given that the expenditure for the class for the current period is already computed, add the non consumed income to savings
-  END_EQUATION(-1);
- }
- 
-if(v[0]==1)
- {//only one option viable, choose it outrightly
-  cur=SEARCH_CND("app",1);
-  INCRS(cur,"MonetarySales",v[31]);
-  END_EQUATION(1);
- } 
-  
+   else
+    { // if the firm produces the required good
+     WRITES(cur,"app",1);   
+     v[0]++;
+     CYCLES(cur, cur1, "Ch")
+      {//for any characteristic
+       v[20]=VS(cur1,"IdCh");
+       cur2=SEARCH_CNDS(c,"IdDCh",v[20]); //find the ch. of the option you are browsing
+       v[4]=VS(cur2,"Delta"); // observation error in the quality of the good
+       v[22]=VS(cur1,"x");
+       v[71]=norm(v[22],v[4]*v[22]); //this is the observed value
+       v[23]=max(0,v[71]);
+       WRITES(cur1,"obs_x",v[23]); //write the observed value 
+       v[70]=VS(cur2,"temp");
+       if(v[23]>v[70])
+        WRITES(cur2,"temp",v[23]);
+      }
+    }
+  }	
+ if(v[0]==0)
+  {//if no firm managed to get visible push up visibility and try again.
+   v[72]++;
+  } 
+  if(v[72]>100)
+   INTERACTS(c, "No visible firms", v[72]);
+}  
+
 //Do a proper choice among the (more than one) viable options
 
 //INTERACT("First", v[0]);
@@ -349,42 +325,22 @@ CYCLES(c, cur, "DCh")
   v[1]=VS(cur,"IdDCh");
   v[25]=VS(cur,"NegativeQuality"); // to control for negative value of quality such as pice
   v[3]=VS(cur,"tau"); // the tolerance parameter
-
-  CYCLE(cur1, "Firm")
-   { //find the (observed) maximum in respect of IdDCh, excluding the non viable, or already removed, options
-    v[7]=VS(cur1,"app");
-    if(v[7]==1)
-     {//if it is still active (a potential choice)
-     //cur3=SEARCH_CNDS(cur1,"IdPNeed",v[30]);
-     cur2=SEARCH_CNDS(cur1,"IdCh",v[1]); //find the ch. of the option
-     v[5]=VS(cur2,"obs_x");//read its value
-     if(v[5]<0)
-      v[5]=0; //negative values mess up the threshold system. Only positive values can be considered.
-     if(v[27]==1)
-      {
-       v[27]=0;
-       v[6]=v[5];
-      } 
-     if(v[5]*v[25]>v[6]*v[25])
-      v[6]=v[5];//record in v[6] the maximum (observed) value
-     WRITES(cur1,"curr_x",v[5]); //write the observed value
-     } 
-    else 
-     WRITES(cur1,"curr_x",-1); //write a default value for non-active options
-   }
+  v[6]=VS(cur,"temp");//max value foun
   CYCLE(cur1, "Firm")
    { //second cycle: remove options below maximum * tau
     v[7]=VS(cur1,"app");
     if(v[7]==1)
     {
-     v[8]=VS(cur1,"curr_x");
+     //v[8]=VS(cur1,"curr_x");
+     cur3=SEARCH_CNDS(cur1,"IdCh",v[1]);
+     v[8]=VS(cur3,"obs_x");
      if(v[25]==-1)
       v[33]=1/v[3];
      else
       v[33]=v[3]; 
      if(v[8]*v[25]<v[6]*v[33]*v[25])
       {//too low value: remove
-       WRITES(cur1,"app",0);
+       WRITES(cur1,"app",-1);
        v[0]--;
       }
     }
@@ -392,7 +348,7 @@ CYCLES(c, cur, "DCh")
 //INTERACT("Subsequ", v[0]);
  }
 if(v[0]==0)
- INTERACT("No firms left",v[0]);//error control: v[0] must be >=1
+ INTERACTS(c,"No firms left",v[0]);//error control: v[0] must be >=1
 
 CYCLE(cur, "Firm")
  {
@@ -431,6 +387,8 @@ CYCLE(cur, "Supply")
      }
    v[9]+=v[8];  
    v[7]+=VS(cur1,"RatioVacancies")*v[8];
+   cur5=SEARCHS(cur1,"BankF");
+   VS(cur1,"NetWorth");
    }
  }
 CYCLE(cur, "KFirm")
@@ -849,6 +807,7 @@ else
       v[45]=VS(cur2->up,"SRMultiplier");
       v[46]=v[44]*(1-v[45])+v[45];
       WRITES(cur3,"SavingRate",v[46]);
+//      INTERACTS(cur3,"Inspect SavingRate", v[46]);
       
       WRITES(cur3,"NumClass",v[18]+1);
       WRITELS(cur3,"Expenditure",0, t-1);
@@ -1468,6 +1427,15 @@ INCRS(p->hook,"WageIncome",v[5]*v[0]*v[1]);
 
 RESULT((v[0]*v[1]) )
 
+EQUATION("InterestPayment")
+/*
+Comment
+*/
+v[0]=V("DebtF");
+v[1]=V("InterestRate");
+
+RESULT(v[0]*v[1])
+
 
 EQUATION("WagePrem")
 /*
@@ -1475,8 +1443,10 @@ Wage premia distributed, when available to all classes of executives.
 */
 
 v[0]=V("Profit");
+v[6]=V("InterestPayment");
+
 v[2]=V("roPremia");
-v[5]=max(0,v[0]*v[2]);
+v[5]=max(0,(v[0]-v[6])*v[2]);
 
 if(v[5]>0)
  {
@@ -1758,6 +1728,19 @@ if(v[1]>0 && v[2]>0)
 
 RESULT( 1)
 
+EQUATION("BacklogValue")
+/*
+Value of the backlog, future revenues
+*/
+
+v[0]=0;
+CYCLES(p->up, cur, "blItem")
+ {
+  v[0]+=VS(cur,"blQ")*VS(cur,"blPrice");
+ }
+
+RESULT(v[0] )
+
 EQUATION("NetWorth")
 /*
 Measure of the value of the firm in case of sales
@@ -1766,6 +1749,7 @@ Measure of the value of the firm in case of sales
 v[0]=V("KPresentValue")*V("PrudenceLending");
 v[1]=V("BalanceF");
 v[2]=V("DebtF");
+v[4]=V("BacklogValue");
 
 v[3]=v[0]-v[2]+v[1];
 RESULT(v[3] )
@@ -2250,6 +2234,11 @@ else
       cur6->hook=cur7;
 
       cur1->hook=cur3;
+      v[44]=VS(cur2,"SavingRate");
+      v[45]=VS(cur2->up,"SRMultiplier");
+      v[46]=v[44]*(1-v[45])+v[45];
+      WRITES(cur3,"SavingRate",v[46]);
+      
       WRITES(cur3,"NumClass",v[18]+1);
       WRITELS(cur3,"Expenditure",0, t-1);
       WRITELS(cur3,"ShareWageIncome",0, t-1);
@@ -3800,7 +3789,8 @@ CYCLE(cur, "Sectors")
   WRITES(cur,"SAvStock",0); 
   WRITES(cur,"SAvBacklog",0); 
   WRITES(cur,"SKProductivity",0); 
-  WRITES(cur,"SULC",0);       
+  WRITES(cur,"SULC",0); 
+  //WRITES(cur,"SNetWorth",0);      
  }
 
 CYCLE(cur, "Supply")
