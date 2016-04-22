@@ -776,15 +776,6 @@ v[4]=v[2]*v[1];
 RESULT(v[4] )
 
 
-EQUATION("NumWorkersFirm")
-/*
-Ttal number of workers in the firm
-*/
-
-v[1]=SUM("NumWorkers");
-
-RESULT(v[1] )
-
 
 EQUATION("NumWorkers")
 /*
@@ -1414,8 +1405,9 @@ Defines the Theoretical Labor Productivity of the Firm as incorporated in the va
 
 v[10]=V("CapitalStock");
 v[0]=0;
-v[1]=0;
+v[1]=v[41]=v[42]=0;
 v[2]=V("CapitalDepress");//defines the depression rate of capital
+v[40]=V("CapitalIntens");
 
 v[20]=0;
 v[30]=VL("Inflation",1);
@@ -1428,6 +1420,7 @@ CYCLE_SAFE(cur, "Capital")
   v[5]=VS(cur, "IncProductivity");
   v[6]=pow((1-v[2]),v[4]);//computes the depressiation of capital
   v[7]=v[3]*v[6];//computes the actual stock of this capital vintage that can be used 
+  
   if(v[7]/v[10]>0.01)
    {
     v[0]+=(v[7]*v[5]);
@@ -1439,8 +1432,9 @@ CYCLE_SAFE(cur, "Capital")
 }
 v[8]=v[0]/v[1];//Max Labor productivity computed as the weighted average of the incorporated productivity in every capital vintages
 
+v[50]=v[1]/v[40];
 WRITE("CapitalStock",v[1]);
-WRITE("CapitalCapacity",v[0]);
+WRITE("CapitalCapacity",v[50]);
 RESULT(v[8] )
 
 
@@ -1736,8 +1730,7 @@ v[4]=V("ExpectedSales");
 v[5]=V("backlog")/10;//a tenth of backlog should be got rid of.
 v[5]=0;
 v[7]=V("DesiredUnusedCapacity");
-//v[8]=V("CapitalIntens");
-v[8]=1;
+v[8]=V("CapitalIntens");
 v[9]=(v[4]+v[5])*v[7];
 
 v[10]=v[9]-v[3];
@@ -1784,12 +1777,17 @@ Present value of capital
 
 v[0]=v[1]=0;
 v[5]=V("AvCurrProd");
+v[6]=V("CapitalDepress");
+
 CYCLES(p->up, cur, "Capital")
  {
   v[2]=VS(cur,"ResellPrice");
   v[3]=VS(cur,"IncProductivity");
   v[4]=VS(cur,"K");
-  v[0]+=v[2]*v[4]*v[3]/v[5];
+  v[7]=VS(cur,"KAge");
+  v[8]=pow(1-v[6],v[7]);
+  
+  v[0]+=v[2]*v[4]*v[8]*v[3]/v[5];
  }
 
 RESULT(v[0] )
