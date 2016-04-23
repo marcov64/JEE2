@@ -104,7 +104,10 @@ cur2->hook=cur3;
 
 v[7]=VS(cur1->hook,"SRevenues");
 v[8]=VS(cur1->hook,"SNumFirms");
-v[9]=(v[7]/v[8]);
+if(v[8]!=0)
+ v[9]=(v[7]/v[8]);
+else
+ v[9]=V("AvPrice")*100;
 WRITELS(cur2,"BalanceF",v[9], t);
 
 v[10]=V("AvCurrProd");
@@ -144,7 +147,9 @@ CYCLE_SAFE(cur, "Firm")
     cur2=SEARCHS(cur,"BankF");
     v[20]=VS(cur2,"DebtF");
     v[70]+=v[20];
-    if(v[3]<v[2])
+    v[7]=VS(cur,"NetWorth");
+//    if(v[3]<v[2])
+    if(v[7]<0)
      {v[5]=VS(cur,"Age");
       INCRS(cur->hook,"AvAgeDeath",v[5]);
       INCRS(cur->hook,"numExit",1);      
@@ -1698,7 +1703,6 @@ V("MaxLaborProductivity");
 v[3]=V("CapitalCapacity");
 v[4]=V("ExpectedSales");
 v[5]=V("backlog")/10;//a tenth of backlog should be got rid of.
-v[5]=0;
 v[7]=V("DesiredUnusedCapacity");
 v[8]=V("CapitalIntens");
 v[9]=(v[4]+v[5])*v[7];

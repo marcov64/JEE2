@@ -577,7 +577,7 @@ Var: InvHerfIndex 0 s + n n
 Param: TotalSales 0 n + n n	0
 Param: innoInterval 0 n + n n	10
 Param: aLearningK 0 n + n n	0
-Param: minMarkup 0 n + n n	0.15
+Param: minMarkup 0 n + n n	0.5
 Func: Entry 0 n + d n
 Var: Exit 0 n + n n
 Func: CounterIdFirm 1 n + n n	100
@@ -714,7 +714,7 @@ Var: AvIncome 0 s + n n
 Var: TotIncomeCapita 0 s + n n
 Param: InterestRate 0 n + n n	0.05
 Param: ExIncome 0 n + n n	200
-Param: ShareSavingsConsumed 0 n + n n	0
+Param: ShareSavingsConsumed 0 n + n n	0.05
 Param: SRMultiplier 0 n + n n	0.2
 
 Object: Class C	3
@@ -861,7 +861,7 @@ Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Object: Bank C	1
 Var: TotalSavings 1 s + n n	0
 Param: TotalDebt 0 s + n n	0
-Param: ActiveInterestRate 0 n + n n	0.02
+Param: ActiveInterestRate 0 n + n n	0
 Param: RationingRatio 0 s + n n	0
 Param: ProfitB 0 s + n n	0
 
