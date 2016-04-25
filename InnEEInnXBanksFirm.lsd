@@ -384,6 +384,9 @@ Label Root
 				Param: SKProductivity
 				Param: SULC
 				Param: Sapp
+				Param: SnumBLI
+				Param: SNetWorth
+				Param: SAvAge
 
 			}
 
@@ -480,6 +483,8 @@ Label Root
 			Param: tauMinW
 			Param: tauMaxW
 			Param: tauMultiplier
+			Param: UpperMinWage
+			Param: LowerMinWage
 
 		}
 
@@ -504,7 +509,7 @@ Object: Country C	1
 Var: Init 0 n + n n
 Var: Trade 0 n + d n
 Var: Production 0 n + d n
-Var: MinWage 1 s + n n	1
+Var: MinWage 1 s + d n	1
 Var: AggProductivity 1 s + n n	1
 Func: TTB_multiplWinner 0 n + n n
 Var: TotUSales 0 n + n n
@@ -525,9 +530,9 @@ Param: InitAggProd 0 n + n n	1
 Param: IncrAggProd 0 n + n n	0.05
 Param: InitAvPrice 0 s + n n	1
 Param: IncrAvPrice 0 n + n n	0.05
-Param: aMWL 0 n + n n	0.1
-Param: aMWA 0 n + n n	0.5
-Param: aMWP 0 n + n n	0
+Param: aMWL 0 n + n n	0.5
+Param: aMWA 0 n + n n	0.2
+Param: aMWP 0 n + n n	0.2
 Var: MovAvPrice 1 s + n n	-1
 Var: MovAvNbrWork 1 n + n n	100
 Param: aAvPrice 0 n + n n	0.05
@@ -583,6 +588,8 @@ Param: AvRatioVacancies 0 s + n n	0
 Param: tauMinW 0 n + n n	1
 Param: tauMaxW 0 n + n n	1
 Param: tauMultiplier 0 n + n n	0.2
+Param: UpperMinWage 0 n + n n	1.02
+Param: LowerMinWage 0 n + n n	0.98
 
 Object: Supply C	1
 Param: IdSector 0 n + n n	1
@@ -731,7 +738,7 @@ Var: AvIncome 0 s + n n
 Var: TotIncomeCapita 0 s + n n
 Param: InterestRate 0 n + n n	0.05
 Param: ExIncome 0 n + n n	200
-Param: ShareSavingsConsumed 0 n + n n	0
+Param: ShareSavingsConsumed 0 n + n n	0.03
 Param: SRMultiplier 0 n + n n	0.2
 
 Object: Class C	3
@@ -872,6 +879,9 @@ Param: AvAgeDeath 0 s + d n	0	0	0	0	0	0	0	0	0	0
 Param: SKProductivity 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: SULC 0 s + n n	0	0	0	0	0	0	0	0	0	0
 Param: Sapp 0 n + n n	0	0	0	0	0	0	0	0	0	0
+Param: SnumBLI 0 s + n n	0	0	0	0	0	0	0	0	0	0
+Param: SNetWorth 0 s + n n	0	0	0	0	0	0	0	0	0	0
+Param: SAvAge 0 s + n n	0	0	0	0	0	0	0	0	0	0
 
 Object: sFirm C	1	1	1	1	1	1	1	1	1	1
 Param: IdsFirm 0 n + n n	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1
@@ -879,7 +889,7 @@ Param: IdsFirm 0 n + n n	-1	-1	-1	-1	-1	-1	-1	-1	-1	-1
 Object: Bank C	1
 Var: TotalSavings 1 s + n n	0
 Param: TotalDebt 0 s + n n	0
-Param: ActiveInterestRate 0 n + n n	0.01
+Param: ActiveInterestRate 0 n + n n	0.03
 Param: RationingRatio 0 s + n n	0
 Param: ProfitB 0 s + n n	0
 
@@ -1411,6 +1421,18 @@ Parameter_tauMultiplier
 Differences in the tolerance level between classes
 _INIT_
  All 6 instances equal to 0.2.
+END_DESCRIPTION
+
+Parameter_UpperMinWage
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
+Parameter_LowerMinWage
+(no description available)
+_INIT_
+
 END_DESCRIPTION
 
 Object_Supply
@@ -3022,6 +3044,24 @@ _INIT_
 END_DESCRIPTION
 
 Parameter_Sapp
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
+Parameter_SnumBLI
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
+Parameter_SNetWorth
+(no description available)
+_INIT_
+
+END_DESCRIPTION
+
+Parameter_SAvAge
 (no description available)
 _INIT_
 

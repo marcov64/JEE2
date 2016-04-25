@@ -108,10 +108,10 @@ cur2=SEARCHS(cur1,"BankF");
 cur3=SEARCHS(p->up,"Bank");
 cur2->hook=cur3;
 
-v[7]=VS(cur1->hook,"SRevenues");
+v[7]=VS(cur1->hook,"SNetWorth")*0.1;
 v[8]=VS(cur1->hook,"SNumFirms");
 if(v[8]!=0)
- v[9]=(v[7]/v[8]);
+ v[9]=(v[7]);
 else
  v[9]=V("AvPrice")*100;
 WRITELS(cur2,"BalanceF",v[9], t);
@@ -731,6 +731,16 @@ if(v[1]==0 || v[2]==0 || v[0]>0 )
 else
  v[3]=1+V("minMarkup")+v[4]*log(1+(v[1]+v[5])/v[2]);
 
+v[10]=VL("InterestPayment",1);
+v[11]=VL("SmoothProfit",1);
+
+if(v[10]>0)
+ v[12]=max(0,(v[10]-v[11])/v[10]);
+else
+ v[12]=0;
+
+v[13]=log(1+v[12]);
+v[3]+=v[13]; 
 //v[3]=1+V("minMarkup");//normal level of markup
 RESULT(v[3])
 
@@ -1771,14 +1781,15 @@ v[11]=max(v[10],0);
 if(v[11]==0)
  END_EQUATION(0);
  
-v[12]=v[11]*v[8];
+v[12]=v[11]*v[8];//desired capital
 
 v[14]=VL("SmoothProfit",1);
 v[15]=VL("InterestPayment",1);
 v[16]=V("AvKPrice");
 v[17]=V("InterestRate");
+v[24]=V("BacklogValue");
 
-v[18]=max(0,v[14]-v[15]) ;
+v[18]=max(0,v[14]-v[15]) ;//financial constraints
 
 
 v[20]=VL("BalanceF",1)-V("DebtF");//liquid capital available to invest
@@ -1789,9 +1800,13 @@ if(v[20]/v[21]>=v[12]*v[16])
   END_EQUATION(v[12]);
  }
 
+
 if((v[12]*v[16])*v[17]>v[18])
  {
-  v[19]=v[18]/( (v[12]*v[16]) *v[17]);//ratio rationing
+  v[19]=(v[18])/( (v[12]*v[16]) *v[17]);//ratio rationing
+  //sprintf(msg, " %g\n", v[19]);
+  //plog(msg);
+  
   v[12]*=v[19];
   WRITE("RationingRatioFirm",v[19]);
  }
@@ -1799,6 +1814,7 @@ else
  {
   WRITE("RationingRatioFirm",1); 
  } 
+
 
 RESULT(v[12] )
 
@@ -2416,9 +2432,34 @@ v[1]=V("KLaborProductivity");
 RESULT((v[0]*v[1]) )
 
 
+EQUATION("MinWageXXX")
+/*
+
+*/
+V("NbrWorkers");
+v[0]=VL("MinWage",1);
+v[2]=V("MovAvAggProd");
+v[3]=VL("MovAvAggProd",1);
+v[13]=V("MovAvPrice");
+v[14]=VL("MovAvPrice",1);
+v[19]=V("aMWL"); //weight of unemployment on change in min wage
+v[30]=V("aMWA"); // weight of average productivity on changes in min wage
+v[21]=V("aMWP"); // weight of price on changes in min wage
+v[40]=V("AvRatioVacancies");
+
+v[5]=(1-v[19]-v[30]-v[21])*v[0]+v[0]*(v[19]*v[40]+v[30]*v[2]/v[3]+v[21]*v[13]/v[14]); 
+
+v[31]=V("UpperMinWage");
+v[32]=V("LowerMinWage");
+
+v[6]=min(v[5],v[31]*v[0]);
+v[7]=max(v[6],v[32]*v[0]);
+RESULT(v[7])
+
 
 EQUATION("MinWage")
 /*
+REMOVED, REPLACED BY A SMOOTHED VERSION
 Sets the minimum wage for all categories, as an aggregate relation. Variables influecing overall wage are: aggregate productivity, inflation, and unemployment. 
 Aggregate productivity?
 Unemployment: to account for Beveridge curves we could use the suggishness in the hiring process, which gnerates rates of vacancies...
@@ -2461,6 +2502,7 @@ if( (v[2]>v[12] || v[13]>v[16]) && v[13] > v[14])
   v[30]=V("AvRatioVacancies");
   v[31]=min(v[30],1);
   v[5]=(1-v[19]-v[3]-v[21])*v[0]+v[19]*(v[0]*(v[31]))+v[3]*(v[0]*(1+v[4]))+v[21]*(v[0]*(1+v[22]));
+
   //sprintf(msg, " %lf", v[5]-v[0]);
   //plog(msg);
   WRITE("InitAggProd",v[2]);
@@ -3909,14 +3951,19 @@ CYCLE(cur, "Sectors")
   WRITES(cur,"SAvBacklog",0); 
   WRITES(cur,"SKProductivity",0); 
   WRITES(cur,"SULC",0); 
-  //WRITES(cur,"SNetWorth",0);      
+  WRITES(cur,"SnumBLI",0);      
+  WRITES(cur,"SNetWorth",0);      
+  WRITES(cur,"SAvAge",0);      
  }
 
 CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
    {
+    INCRS(cur1->hook->up, "SAvAge", VS(cur1,"Age"));
     INCRS(cur1->hook->up, "SUnitSales", VS(cur1,"UnitSales"));
+    INCRS(cur1->hook->up, "SnumBLI", VS(cur1,"numBLI"));
+    INCRS(cur1->hook->up, "SNetWorth", VS(cur1,"NetWorth"));
     INCRS(cur1->hook->up, "SQ", v[30]=VS(cur1,"Q"));
     INCRS(cur1->hook->up, "SRevenues", VS(cur1,"Revenues"));
     INCRS(cur1->hook->up, "SProfits", VS(cur1,"Profit"));
@@ -3981,6 +4028,13 @@ CYCLE(cur1, "Sectors")
    {
     WRITES(cur1,"maxXS",VS(cur1,"Sapp"));
    } 
+  v[17]=VS(cur1,"SNumFirms");
+  if(v[17]>0)
+   {
+    MULTS(cur1,"SnumBLI",1/v[17]);
+    MULTS(cur1,"SNetWorth",1/v[17]);
+    MULTS(cur1,"SAvAge",1/v[17]);    
+   }  
  }
 
 v[5]=v[3]/v[4];
