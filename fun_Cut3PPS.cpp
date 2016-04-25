@@ -2,6 +2,7 @@
 
 MODELBEGIN
 
+//DEBUG_AT(0);
 /******************************************
 *
 *	DEMOGRAPHY
@@ -70,7 +71,12 @@ cur1=ADDOBJ("Firm");
 cur1->hook=c;
 WRITELS(cur1,"Age",0, t);
 WRITELS(cur1,"Visibility",0.01, t);
-WRITES(cur1,"IdFirm",V("CounterIdFirm"));
+WRITES(cur1,"IdFirm",v[20]=V("CounterIdFirm"));
+cur5=ADDOBJS(c,"sFirm");
+WRITES(cur5,"IdsFirm",v[20]);
+cur5->hook=cur1;
+cur1->hook=cur5;
+
 WRITES(cur1,"product",v[1]);
 cur=SEARCHS(cur1,"PNeed");
 cur2=ADDOBJS(cur,"Ch");
@@ -151,9 +157,12 @@ CYCLE_SAFE(cur, "Firm")
 //    if(v[3]<v[2])
     if(v[7]<0)
      {v[5]=VS(cur,"Age");
-      INCRS(cur->hook,"AvAgeDeath",v[5]);
-      INCRS(cur->hook,"numExit",1);      
+      if(V("ExitFlag")==1)
+        INTERACTS(cur,"Dying", v[7]);
+      INCRS(cur->hook->up,"AvAgeDeath",v[5]);
+      INCRS(cur->hook->up,"numExit",1);      
        INCRS(cur2->hook,"TotalDebt",-v[20]);
+      DELETE(cur->hook); 
       DELETE(cur);
       v[4]++;
      }
@@ -253,12 +262,15 @@ v[3]=(v[2]-v[0])/v[2];
 v[4]=max(v[3],0.1);
 
 v[5]=v[1]*0.9+0.1*v[4];
-v[5]=CURRENT*0.9+0.1;
+//v[5]=CURRENT*0.9+0.1;
 RESULT(v[5] )
 
 
 EQUATION("TTB_multiplWinner")
 /*
+
+The changes cannot work, since you get the optimum before making any selection.
+
 
 Standard TTB, but all the winners remain marking "app" to 1, and returning the number of winners.
 
@@ -278,14 +290,18 @@ v[0]=0;
 v[31]=VS(c->up,"Expenditure")/VS(c->up,"TotIterations"); //amount to spend on this iteration
 v[30]=VS(c,"IdNeed");
 
+cur9=SEARCH_CND("IdGood",v[30]);
+
 CYCLES(c, cur, "DCh")
   WRITES(cur,"temp",-1);//set to -1 the max value
 
 v[72]=1;
 while(v[0]==0)
 {//repeat for increasing levels of visibility as long no firms have been found
-  CYCLE(cur, "Firm")
+//   CYCLE(cur, "Firm") 
+  CYCLES(cur9,cur8, "sFirm")
   {
+   cur=cur8->hook;
    v[24]=1; //assume the option to be viable
    //cur3=SEARCH_CNDS(cur,"IdPNeed",v[30]);
    v[37]=VS(cur,"product");
@@ -303,12 +319,10 @@ while(v[0]==0)
        cur2=SEARCH_CNDS(c,"IdDCh",v[20]); //find the ch. of the option you are browsing
        v[4]=VS(cur2,"Delta"); // observation error in the quality of the good
        v[22]=VS(cur1,"x");
-       v[71]=norm(v[22],v[4]*v[22]); //this is the observed value
+       //v[71]=norm(v[22],v[4]*v[22]); //this is the observed value
+       v[71]=norm(v[22],v[4]); //ABSOLUTE VARIANCE
        v[23]=max(0,v[71]);
        WRITES(cur1,"obs_x",v[23]); //write the observed value 
-       v[70]=VS(cur2,"temp");
-       if(v[23]>v[70])
-        WRITES(cur2,"temp",v[23]);
       }
     }
   }	
@@ -323,31 +337,60 @@ while(v[0]==0)
 //Do a proper choice among the (more than one) viable options
 
 //INTERACT("First", v[0]);
-
+v[80]=v[0];
 CYCLES(c, cur, "DCh")
  {//for each characteristic, in the order of the decision maker
   v[27]=1;
   v[1]=VS(cur,"IdDCh");
   v[25]=VS(cur,"NegativeQuality"); // to control for negative value of quality such as pice
   v[3]=VS(cur,"tau"); // the tolerance parameter
-  v[6]=VS(cur,"temp");//max value foun
-  CYCLE(cur1, "Firm")
-   { //second cycle: remove options below maximum * tau
+
+  //CYCLE(cur1, "Firm")
+  CYCLES(cur9,cur8, "sFirm")
+   { //find the maximum
+    cur1=cur8->hook;
     v[7]=VS(cur1,"app");
     if(v[7]==1)
     {
      //v[8]=VS(cur1,"curr_x");
      cur3=SEARCH_CNDS(cur1,"IdCh",v[1]);
      v[8]=VS(cur3,"obs_x");
+     if(v[27]==1 ||v[6]*v[25]<v[8]*v[25])
+       {cur->hook=cur3;
+        v[27]=0;
+        v[6]=v[8];
+       }
+     }
+   }    
+  
+  v[74]=100000000;
+  //CYCLE(cur1, "Firm")
+  CYCLES(cur9,cur8, "sFirm")
+   { //second cycle: remove options below maximum * tau
+    cur1=cur8->hook;
+    v[7]=VS(cur1,"app");
+    if(v[7]==1)
+    {
+     cur3=SEARCH_CNDS(cur1,"IdCh",v[1]);
+     v[8]=VS(cur3,"obs_x");
      if(v[25]==-1)
       v[33]=1/v[3];
      else
       v[33]=v[3]; 
-     if(v[8]*v[25]<v[6]*v[33]*v[25])
+     v[78]=v[8]*v[25];
+     v[79]=v[6]*v[33]*v[25]; 
+     v[77]=v[79]-v[78];
+     if(v[8]*v[25]<v[6]*v[33]*v[25]-0.00001)//approximations sometime makes things weird
       {//too low value: remove
+      if(abs(v[6]-v[8]) < 0.00001)
+       INTERACTS(cur3,"Merda1",v[33]);
+
        WRITES(cur1,"app",-1);
        v[0]--;
+      //sprintf(msg, " in need %g of class %g\n", v[30],VS(c,"NumClass"));
+      //plog(msg);
       }
+      
     }
    }
 //INTERACT("Subsequ", v[0]);
@@ -355,11 +398,17 @@ CYCLES(c, cur, "DCh")
 if(v[0]==0)
  INTERACTS(c,"No firms left",v[0]);//error control: v[0] must be >=1
 
-CYCLE(cur, "Firm")
+if(v[80]!=v[0])
  {
-  v[32]=VS(cur,"app");
+ // sprintf(msg, " %g in need %g of class %g\n", v[0]/v[80], v[30],VS(c,"NumClass"));
+  //plog(msg);
+ }
+//CYCLE(cur, "Firm")
+CYCLES(cur9,cur8, "sFirm") 
+ {
+  v[32]=VS(cur8->hook,"app");
   if(v[32]==1)
-   INCRS(cur,"MonetarySales",v[31]/v[0]);
+   INCRS(cur8->hook,"MonetarySales",v[31]/v[0]);
  }
 
 RESULT(v[0] )
@@ -650,6 +699,10 @@ if(abs(v[22]-v[2])>0.001)
   INTERACT("DiffSum",v[22]);
 v[2]=v[22];  
 */
+if(v[77]==1)
+ {//killed last backlog, any non-zero value is due to approximation
+  v[2]=0;
+ }
 RESULT(v[2] )
 
 EQUATION("markup")
@@ -657,7 +710,7 @@ EQUATION("markup")
 
 Raise price for positive backlog and reduce it to normal levels otherwise
 */
-
+/*
 v[0]=V("Stocks"); //here it is computed the backlog
 v[1]=V("backlog");
 v[2]=V("Q");
@@ -666,6 +719,17 @@ if(v[1]==0 || v[2]==0 )
  v[3]=1+V("minMarkup");//normal level of markup
 else
  v[3]=1+V("minMarkup")+v[4]*log(1+v[1]/v[2]);
+*/
+
+v[0]=V("Stocks"); //here it is computed the backlog
+v[1]=V("UnitDemand");
+v[2]=V("Q");
+v[4]=V("coefMarkupVar");
+v[5]=V("backlog");
+if(v[1]==0 || v[2]==0 || v[0]>0 )
+ v[3]=1+V("minMarkup");//normal level of markup
+else
+ v[3]=1+V("minMarkup")+v[4]*log(1+(v[1]+v[5])/v[2]);
 
 //v[3]=1+V("minMarkup");//normal level of markup
 RESULT(v[3])
@@ -1688,17 +1752,12 @@ EQUATION("KapitalNeed")
 /*
 Decide whether to order new capital.
 */
-/*
-v[3]=VL("CapitalStock",1);
-v[4]=V("ExpectedSales");
-v[7]=V("DesiredUnusedCapacity");
-v[8]=V("CapitalIntens");
-v[9]=(v[4]/v[8])*v[7];
-v[10]=v[9]-v[3];
-*/
-//v[11]=max(v[10],0);
-//Cannot understand, and in any case does not work
 
+
+v[0]=V("Waiting");
+if(v[0]==1)
+ END_EQUATION(CURRENT);
+ 
 V("MaxLaborProductivity");
 v[3]=V("CapitalCapacity");
 v[4]=V("ExpectedSales");
@@ -1709,7 +1768,38 @@ v[9]=(v[4]+v[5])*v[7];
 
 v[10]=v[9]-v[3];
 v[11]=max(v[10],0);
+if(v[11]==0)
+ END_EQUATION(0);
+ 
 v[12]=v[11]*v[8];
+
+v[14]=VL("SmoothProfit",1);
+v[15]=VL("InterestPayment",1);
+v[16]=V("AvKPrice");
+v[17]=V("InterestRate");
+
+v[18]=max(0,v[14]-v[15]) ;
+
+
+v[20]=VL("BalanceF",1)-V("DebtF");//liquid capital available to invest
+v[21]=V("DivisorLiquidityFinance");
+if(v[20]/v[21]>=v[12]*v[16])
+ {//plog(" self financed\n");
+  WRITE("RationingRatioFirm",1); 
+  END_EQUATION(v[12]);
+ }
+
+if((v[12]*v[16])*v[17]>v[18])
+ {
+  v[19]=v[18]/( (v[12]*v[16]) *v[17]);//ratio rationing
+  v[12]*=v[19];
+  WRITE("RationingRatioFirm",v[19]);
+ }
+else
+ {
+  WRITE("RationingRatioFirm",1); 
+ } 
+
 RESULT(v[12] )
 
 
@@ -1717,6 +1807,7 @@ EQUATION("InvestmentDecision")
 /*
 Place on order of K if you need it and did not place an order as yet
 */
+
 v[0]=V("Waiting");
 if(v[0]==1)
  END_EQUATION(1); //skip the equation if you already placed an order. To be edited to give the possibility to remove a too late order
@@ -1724,6 +1815,7 @@ if(v[0]==1)
 
 v[1]=V("KapitalNeed");
 v[2]=VL("NetWorth",1);
+
 if(v[1]>0 && v[2]>0)
  {
   v[3]=V("PlaceOrder");
@@ -1731,6 +1823,18 @@ if(v[1]>0 && v[2]>0)
  } 
 
 RESULT( 1)
+
+
+EQUATION("SmoothProfit")
+/*
+Comment
+*/
+v[1]=CURRENT;
+if(v[1]==-1)
+  v[0]=V("Profit");
+else
+  v[0]=v[1]*0.9+0.1*V("Profit");  
+RESULT(v[0] )
 
 EQUATION("BacklogValue")
 /*
@@ -1755,7 +1859,7 @@ v[1]=V("BalanceF");
 v[2]=V("DebtF");
 v[4]=V("BacklogValue");
 
-v[3]=v[0]-v[2]+v[1];
+v[3]=v[0]+v[4]	-v[2]+v[1];
 RESULT(v[3] )
 
 EQUATION("KPresentValue")
@@ -2339,7 +2443,7 @@ v[20]=(v[17]/v[18])-1;
 
 /****
 v[5]=(1-v[19])*v[0]+v[19]*(v[0]*(1-v[20])); //change in min wage due to changes in the labour market (as proxy of labour (excess) demand) although it should include the available number of workers, or use the beveridge curve versione, or whatever..
-/***/
+***/
 v[30]=V("AvRatioVacancies");
 v[31]=min(v[30],1.02);  
 v[5]=(1-v[19])*v[0]+v[19]*(v[0]*(v[31])); 
@@ -2836,7 +2940,7 @@ CYCLE(cur, "Need")
   v[3]=v[2]/v[1]; // normalise the share
   WRITES(cur,"Share",v[3]); // and fix it
   v[4]+=v[3]; // check that the sum is equal to 1
-  v[5]=v[3]*100; // compute the number of iterations given the consumption shares
+  v[5]=v[3]*151; // compute the number of iterations given the consumption shares
   v[6]=round(v[5]); // round to the closest integer
   WRITES(cur,"NumIterations",v[6]);
   v[7]+=v[6]; // check that the sum of interations is 100
@@ -2907,7 +3011,13 @@ CYCLE(cur4, "Supply")
     v[15]=0;
     v[16]=VS(cur1,"product");
     cur5=SEARCH_CND("IdGood",v[16]);
-    cur1->hook=cur5;
+    cur6=SEARCHS(cur5,"sFirm");
+    if(VS(cur6, "IdsFirm")!=-1)
+     cur6=ADDOBJS(cur5,"sFirm");
+
+    WRITES(cur6,"IdsFirm",VS(cur1, "IdFirm")); 
+    cur1->hook=cur6;
+    cur6->hook=cur1;
     CYCLES(cur1,cur, "Labor")
      { //check how many tiers already exist
       v[15]++;
@@ -3319,6 +3429,8 @@ CYCLE(cur, "Demand")
           v[3]=VS(cur3,"tauMinW"); // minimum level of tolerance toward the best product in the market, for workers
           v[4]=VS(cur3,"tauMaxW"); // maximum level of tolerance toward the best product in the market, for wokers
           v[8]=UNIFORM(v[3],v[4]);
+          if(VS(cur3,"NegativeQuality")>0)
+           v[8]=1-v[8];
           WRITES(cur3,"tau",v[8]);
          }
 
@@ -3356,6 +3468,7 @@ CYCLE(cur, "Demand")
            v[15]=V("tauMin"); // the asympthotic level of the tolerance level (1 for qualities and 0 for price)
           v[14]=v[13]*(1-v[5])+v[5]*v[15]; // adjustment in the treshold level of tolerance
           WRITES(cur3,"tau",v[14]); // finally write the tau for the new consumer class in each of its characteristic for each need
+          //INTERACTS(cur3, "tauini", v[13]);
          }
 
        }
@@ -3787,7 +3900,9 @@ CYCLE(cur, "Sectors")
   WRITES(cur,"SProfits",0);
   WRITES(cur,"SNumFirms",0); 
   WRITES(cur,"SMonetarySales",0); 
+  WRITES(cur,"Sapp",VS(cur,"maxXS"));
   WRITES(cur,"maxXS",0); 
+  
   WRITES(cur,"SInvHerf",0);   
   WRITES(cur,"SAvHealth",0);
   WRITES(cur,"SAvStock",0); 
@@ -3801,15 +3916,15 @@ CYCLE(cur, "Supply")
  {
   CYCLES(cur, cur1, "Firm")
    {
-    INCRS(cur1->hook, "SUnitSales", VS(cur1,"UnitSales"));
-    INCRS(cur1->hook, "SQ", v[30]=VS(cur1,"Q"));
-    INCRS(cur1->hook, "SRevenues", VS(cur1,"Revenues"));
-    INCRS(cur1->hook, "SProfits", VS(cur1,"Profit"));
-    INCRS(cur1->hook, "SMonetarySales", VS(cur1,"MonetarySales"));
-    INCRS(cur1->hook, "SNumFirms", 1);    
+    INCRS(cur1->hook->up, "SUnitSales", VS(cur1,"UnitSales"));
+    INCRS(cur1->hook->up, "SQ", v[30]=VS(cur1,"Q"));
+    INCRS(cur1->hook->up, "SRevenues", VS(cur1,"Revenues"));
+    INCRS(cur1->hook->up, "SProfits", VS(cur1,"Profit"));
+    INCRS(cur1->hook->up, "SMonetarySales", VS(cur1,"MonetarySales"));
+    INCRS(cur1->hook->up, "SNumFirms", 1);    
     WRITES(cur1,"MsSector",VS(cur1, "MonetarySales"));
-    INCRS(cur1->hook, "SKProductivity", VS(cur1,"MaxLaborProductivity")*v[30]); 
-    INCRS(cur1->hook, "SULC", VS(cur1,"UnitLaborCost")*v[30]);            
+    INCRS(cur1->hook->up, "SKProductivity", VS(cur1,"MaxLaborProductivity")*v[30]); 
+    INCRS(cur1->hook->up, "SULC", VS(cur1,"UnitLaborCost")*v[30]);            
 
     CYCLES(cur1, cur2, "PNeed")
      {
@@ -3819,10 +3934,10 @@ CYCLE(cur, "Supply")
         if(v[1]>1)
          { // to make it simple i assume that the first charateristic is price, this should be generalised
           v[2]=VS(cur3,"x");
-          INCRS(cur1->hook, "AvxS", v[2]*v[30]);
-          v[5]=VS(cur1->hook,"maxXS");
+          INCRS(cur1->hook->up, "AvxS", v[2]*v[30]);
+          v[5]=VS(cur1->hook->up,"maxXS");
           if(v[2]>v[5])
-           WRITES(cur1->hook,"maxXS",v[2]);
+           WRITES(cur1->hook->up,"maxXS",v[2]);
           v[3]+=v[2];
           v[4]++;
          }
@@ -3836,7 +3951,7 @@ CYCLE(cur, "Supply")
 
 CYCLE(cur1, "Firm")
  {
-  v[20]=VS(cur1->hook,"SMonetarySales");
+  v[20]=VS(cur1->hook->up,"SMonetarySales");
   v[21]=VS(cur1,"MsSector");
   
   if(v[20]>0)
@@ -3844,10 +3959,10 @@ CYCLE(cur1, "Firm")
   else
    v[23]=0; 
   WRITES(cur1,"MsSector",v[23]);
-  INCRS(cur1->hook,"SAvHealth",v[23]*VS(cur1,"Health"));
-  INCRS(cur1->hook,"SInvHerf",v[23]*v[23]);
-  INCRS(cur1->hook,"SAvStock",v[23]*VS(cur1,"Stocks"));
-  INCRS(cur1->hook,"SAvBacklog",v[23]*VS(cur1,"backlog"));  
+  INCRS(cur1->hook->up,"SAvHealth",v[23]*VS(cur1,"Health"));
+  INCRS(cur1->hook->up,"SInvHerf",v[23]*v[23]);
+  INCRS(cur1->hook->up,"SAvStock",v[23]*VS(cur1,"Stocks"));
+  INCRS(cur1->hook->up,"SAvBacklog",v[23]*VS(cur1,"backlog"));  
  }
 
 CYCLE(cur1, "Sectors")
@@ -3862,6 +3977,10 @@ CYCLE(cur1, "Sectors")
     MULTS(cur1,"SKProductivity",1/v[30]); 
     MULTS(cur1,"SULC",1/v[30]);        
    }
+  else
+   {
+    WRITES(cur1,"maxXS",VS(cur1,"Sapp"));
+   } 
  }
 
 v[5]=v[3]/v[4];
