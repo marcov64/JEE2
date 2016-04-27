@@ -90,8 +90,12 @@ cur3->hook=cur4;
 cur=ADDOBJS(cur1,"Labor");
 WRITES(cur,"IdLabor",2);
 cur4=SEARCH_CND("NumClass",2);
-WRITES(cur,"wagecoeff",2);
 cur->hook=cur4;
+
+cur5=SEARCH_CND("IdLabor",2);//
+v[78]=VS(cur5,"wagecoeff");
+WRITES(cur,"wagecoeff",v[78]);
+
 
 v[4]=V("MinWage");
 CYCLES(cur1, cur2, "Labor")
@@ -1129,7 +1133,7 @@ INCRS(p->hook,"ProfitB",-v[2]);
 */
 
 v[0]=VL("BalanceC",1);
-if(v[0]<0)
+if(v[0]<=0)
  END_EQUATION(0);
 
 cur=SEARCH("BankC");
@@ -1142,7 +1146,11 @@ if(v[1]>0)
  v[4]=v[2]*v[0]/v[1];
 else
  v[4]=0;
+ 
+WRITE("endoReturns",v[4]/v[0]); 
 v[7]=v[5]+v[4];
+WRITE("shareWealth",v[0]/v[1]);
+
 
 RESULT(v[7])
 
@@ -1178,6 +1186,20 @@ v[0]=V("TotIncome");
 v[1]=V("TotIndividuals");
 RESULT(v[0]/v[1] )
 
+EQUATION("TotConsumption")
+/*
+Total Consumption
+*/
+
+RESULT(SUM("Consumption") )
+
+EQUATION("shareConsumption")
+/*
+Comment
+*/
+v[0]=V("Consumption");
+v[1]=V("TotConsumption");
+RESULT(v[0]/v[1] )
 
 EQUATION("TotIncome")
 /*
@@ -1242,6 +1264,14 @@ v[0]=V("Income");
 v[1]=VS(p->up,"TotIncome");
 RESULT(v[0]/v[1] )
 
+EQUATION("ShareIndividuals")
+/*
+Share of total income for this class
+*/
+
+v[0]=V("Individuals");
+v[1]=VS(p->up,"TotIndividuals");
+RESULT(v[0]/v[1] )
 
 EQUATION("ShareWageIncome")
 /*
@@ -2166,8 +2196,6 @@ v[9]=VS(p->up,"KNbrWorkers"); // number of first tier worker as a max to chose t
 v[10]=v[9]*v[8];
 v[6]=max(v[5],0);
 v[11]=min(v[10],v[6]);
-VS(p->hook->up,"PayTime");
-INCRS(p->hook,"Individuals",v[11]-v[2]);
 RESULT(v[11] )
 
 
@@ -2179,7 +2207,9 @@ v[0]=V("MinWage");
 v[1]=V("KEWagecoeff");
 VS(p->hook->up,"PayTime");
 v[3]=V("KNbrEngineers");
+VS(p->hook->up,"PayTime");
 INCRS(p->hook,"WageIncome",v[1]*v[0]*v[3]);
+INCRS(p->hook,"Individuals",v[3]);
 RESULT((v[0]*v[1]) )
 
 
@@ -3944,7 +3974,7 @@ CYCLE(cur, "Sectors")
   WRITES(cur,"SMonetarySales",0); 
   WRITES(cur,"Sapp",VS(cur,"maxXS"));
   WRITES(cur,"maxXS",0); 
-  
+  WRITES(cur,"AvpS",0);   
   WRITES(cur,"SInvHerf",0);   
   WRITES(cur,"SAvHealth",0);
   WRITES(cur,"SAvStock",0); 
@@ -3966,6 +3996,7 @@ CYCLE(cur, "Supply")
     INCRS(cur1->hook->up, "SNetWorth", VS(cur1,"NetWorth"));
     INCRS(cur1->hook->up, "SQ", v[30]=VS(cur1,"Q"));
     INCRS(cur1->hook->up, "SRevenues", VS(cur1,"Revenues"));
+    INCRS(cur1->hook->up, "AvpS", v[30]*VS(cur1,"price"));
     INCRS(cur1->hook->up, "SProfits", VS(cur1,"Profit"));
     INCRS(cur1->hook->up, "SMonetarySales", VS(cur1,"MonetarySales"));
     INCRS(cur1->hook->up, "SNumFirms", 1);    
@@ -4023,6 +4054,7 @@ CYCLE(cur1, "Sectors")
     MULTS(cur1,"AvxS",1/v[30]);
     MULTS(cur1,"SKProductivity",1/v[30]); 
     MULTS(cur1,"SULC",1/v[30]);        
+    MULTS(cur1,"AvpS",1/v[30]);        
    }
   else
    {
