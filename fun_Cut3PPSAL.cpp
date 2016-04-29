@@ -323,8 +323,8 @@ while(v[0]==0)
        cur2=SEARCH_CNDS(c,"IdDCh",v[20]); //find the ch. of the option you are browsing
        v[4]=VS(cur2,"Delta"); // observation error in the quality of the good
        v[22]=VS(cur1,"x");
-       v[71]=norm(v[22],v[4]*v[22]); //this is the observed value
-       //v[71]=norm(v[22],v[4]); //ABSOLUTE VARIANCE
+       //v[71]=norm(v[22],v[4]*v[22]); //this is the observed value
+       v[71]=norm(v[22],v[4]); //ABSOLUTE VARIANCE
        v[23]=max(0,v[71]);
        WRITES(cur1,"obs_x",v[23]); //write the observed value 
       }
@@ -3580,6 +3580,26 @@ RESULT(1 )
 
 /***** SOME STATISTICS ******/
 
+EQUATION("MargPropConsume")
+/*
+Comment
+*/
+v[1]=v[2]=v[3]=v[4]=0;
+CYCLE(cur, "Class")
+ {
+  v[5]=VS(cur,"Expenditure");
+  v[6]=VLS(cur,"Expenditure",1);
+  v[7]=VS(cur,"Income");
+  v[8]=VLS(cur,"Income",1);
+  v[1]+=v[5];
+  v[2]+=v[6];
+  v[3]+=v[7];
+  v[4]+=v[8];
+ }
+v[9]=(v[1]-v[2])/(v[3]-v[4]);
+RESULT(v[9] )
+
+
 
 EQUATION("IncomeDistribution")
 /*
@@ -3710,10 +3730,11 @@ A=1-{SUM_i[y_i**(1-e)]**(1/(1-e))}/Av.y
 v[16]=(double)t;
 if(v[16]>1)
  {
-  v[10]=0;
-  v[6]=V("AvIncome");
+  v[10]=v[20]=v[30]=v[40]=0;
+  //v[6]=V("AvIncome");
   v[8]=V("Aversion"); // parmeter for the aversion to inequality (changes which end of the income distribution has a higher weight in the index computation)
   v[11]=V("TotIndividuals");
+  v[22]=V("TotIncome");
   CYCLE(cur, "Demand")
    {
     CYCLES(cur, cur1, "Class")
@@ -3724,19 +3745,30 @@ if(v[16]>1)
        {
         v[7]=v[5]/v[4]; // av. income of the class
         v[9]=pow(v[7],(1-v[8]));
-        v[17]=v[9]*VS(cur1, "ShareIncome");
+        v[17]=v[9]*v[4];
+        v[41]=pow(v[5],(1-v[8]));
        }
       else
+      	{
        v[17]=0;
+       v[41]=0;
+       	}
       v[10]+=v[17];
+      v[20]+=v[5];
+      v[30]+=1;
+      v[40]+=v[41];
      }
   
    }
   
-  v[12]=v[10];
+  v[12]=v[10]/v[11];
   v[13]=1/(1-v[8]);
   v[14]=pow(v[12],v[13]);
-  v[15]=1-v[14]/v[6];
+  v[15]=1-v[14]/(v[20]/v[11]);//Atkinson Index for Individual inequality
+  v[42]=v[41]/v[30];
+  v[43]=pow(v[42],v[13]);
+  v[44]=1-v[43]/(v[20]/v[30]);//Atkinson Index for Individual inequality
+  WRITE("AtkinsonClass",v[44]);
  }
 else
  v[15]=0;
@@ -3823,7 +3855,6 @@ CYCLE(cur, "Supply")
     v[5]=VS(cur1,"UnitSales");
     v[6]=VS(cur1,"ConstPrice");
     v[7]=v[5]*v[6];
-    v[8]+=v[7];
     v[9]+=v[7];
    }
 
@@ -3840,11 +3871,11 @@ CYCLE(cur, "Machinery")
    }
 
  }
-
-WRITE("GdpConstant",v[8]);
+v[11]=v[9]+v[10];
+WRITE("GdpConstant",v[11]);
 WRITE("GdpConstantF",v[9]);
 WRITE("GdpConstantK",v[10]);
-RESULT(v[4] )
+RESULT(v[4]+v[8] )
 
 
 
@@ -4104,7 +4135,7 @@ CYCLES(p->up, cur, "Supply")
      }
    }
 
- }
+ } 
 WRITE("TotSalesS",v[4]);
 CYCLES(p->up, cur, "Supply")
  {
@@ -4123,6 +4154,169 @@ CYCLES(p->up, cur, "Supply")
  }
 
 RESULT(v[8] )
+
+EQUATION("SectEmployment")
+/*
+Herfindahl indexin each sector
+*/
+
+v[0]=v[10]=v[20]=v[30]=0;
+v[1]=V("IdGood");
+v[4]=V("NbrWorkers");
+v[14]=V("GdpNominal");
+v[24]=V("GdpConstant");
+  CYCLE( cur1, "sFirm")
+   {
+      v[3]=VS(cur1->hook,"NumWorkers");
+      v[11]=VS(cur1->hook,"Revenues");
+      v[21]=VS(cur1->hook,"UnitSales");
+      v[22]=VS(cur1->hook,"ConstPrice");
+      v[31]=VS(cur1->hook,"CapitalStock");
+      v[23]=v[21]*v[22];
+      v[0]+=v[3];
+      v[10]+=v[11];
+      v[20]+=v[23];
+      v[30]+=v[31];
+   }
+
+v[7]=v[0]/v[4];
+v[17]=v[10]/v[14];
+v[27]=v[20]/v[24];
+WRITE("SectEmploymentShare",v[7]);
+WRITE("SectSales",v[10]);
+WRITE("SectNomGDPShare",v[17]);
+WRITE("SectOutputShare",v[27]);
+v[32]=v[30]/v[0];
+WRITE("SectMechanisation",v[32]);
+RESULT(v[0] )
+
+EQUATION("ConsumptionConcentration")
+/*
+Comment
+*/
+v[0]=v[10]=0;
+CYCLE(cur, "Sectors")
+ {
+ v[1]=VS(cur,"SectSales");
+ v[0]+=v[1]; 
+ }
+v[2]=v[0];
+CYCLE(cur, "Sectors")
+ {
+ v[1]=VS(cur,"SectSales");
+ if(v[2]==0)
+ 	v[3]=0;
+ else
+	 v[3]=v[1]/v[2];
+ WRITES(cur,"SectSalesShare",v[3]); 
+ v[10]+=(v[3]*v[3]);
+ }
+if(v[10]==0)
+	v[11]=0;
+else 
+	v[11]=1/v[10];
+RESULT(v[11] )
+
+EQUATION("Mechanisation")
+/*
+Comment
+*/
+v[0]=0;
+CYCLE(cur, "Sectors")
+ {
+ v[1]=VS(cur,"SectMechanisation");
+ v[2]=VS(cur,"SectEmploymentShare");
+ v[0]+=(v[1]*v[2]); 
+ }
+v[3]=v[0];
+RESULT(v[3] )
+
+EQUATION("EmploymentConcentration")
+/*
+Comment
+*/
+v[0]=v[3]=0;
+v[4]=V("NbrWorkers");
+v[10]=v[11]=v[12]=0;
+v[13]=V("GdpNominal");
+v[20]=v[21]=v[22]=0;
+v[23]=V("GdpConstant");
+CYCLE(cur, "Sectors")
+ {
+ 	v[5]=VS(cur,"SectEmploymentShare");
+ 	v[0]+=(v[5]*v[5]);
+ 	v[14]=VS(cur,"SectNomGDPShare");
+ 	if(v[14]==0)
+		v[19]=0;
+	else
+		v[19]=v[14]*v[14];
+	v[10]+=v[19];
+ 	v[24]=VS(cur,"SectOutputShare");
+ 	if(v[24]==0)
+		v[29]=0;
+	else
+		v[29]=v[24]*v[24];
+	v[20]+=v[29];
+}
+
+CYCLE(cur, "Machinery")
+ {
+ 	v[1]=v[2]=0;
+  CYCLES(cur, cur1, "KFirm")
+   {
+    CYCLES(cur1, cur2, "KLabor")
+     {
+      v[6]=VS(cur2,"KNbrWorkers");
+      v[2]+=v[6];
+     }
+		CYCLES(cur1, cur2, "KEngineers")
+ 		{
+  		v[7]=VS(cur2,"KNbrEngineers");
+      v[1]+=v[7];	
+ 		}
+	  v[15]=VS(cur1,"KProductionFlow"); 
+    v[16]=VS(cur1,"KPrice");
+    v[11]+=(v[15]*v[16]); 
+    v[26]=VS(cur1,"KConstPrice");
+    v[21]+=v[15]; 
+   }
+	v[8]=v[1]+v[2];
+	v[9]=v[8]/v[4];
+	v[3]+=(v[9]*v[9]);
+	WRITES(cur,"KEmployment",v[8]);
+	WRITES(cur,"KEmploymentShare",v[9]);
+	v[17]=v[11]/v[13];
+	if(v[11]==0)
+		v[18]=0;
+	else
+		v[18]=v[17]*v[17];
+	v[12]+=v[18];
+	WRITES(cur,"KNomGDPShare",v[17]);
+		v[27]=v[21]/v[23];
+	if(v[21]==0)
+		v[28]=0;
+	else
+		v[28]=v[27]*v[27];
+	v[22]+=v[28];
+	WRITES(cur,"KOutputShare",v[27]);
+ }
+v[99]=1/(v[3]+v[0]);
+v[98]=v[12]+v[10];
+if(v[98]==0)
+	v[97]=0;
+else
+	v[97]=1/v[98];
+WRITE("GDPConcentration",v[97]);
+v[96]=v[22]+v[20];
+if(v[96]==0)
+	v[95]=0;
+else
+	v[95]=1/v[96];
+WRITE("OutputConcentration",v[95]);
+RESULT(v[99])
+
+
+
 
 EQUATION("FrontierX")
 /*
