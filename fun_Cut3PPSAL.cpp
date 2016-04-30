@@ -323,8 +323,8 @@ while(v[0]==0)
        cur2=SEARCH_CNDS(c,"IdDCh",v[20]); //find the ch. of the option you are browsing
        v[4]=VS(cur2,"Delta"); // observation error in the quality of the good
        v[22]=VS(cur1,"x");
-       //v[71]=norm(v[22],v[4]*v[22]); //this is the observed value
-       v[71]=norm(v[22],v[4]); //ABSOLUTE VARIANCE
+       v[71]=norm(v[22],v[4]*v[22]); //this is the observed value
+       //v[71]=norm(v[22],v[4]); //ABSOLUTE VARIANCE
        v[23]=max(0,v[71]);
        WRITES(cur1,"obs_x",v[23]); //write the observed value 
       }
@@ -1622,9 +1622,9 @@ v[0]=0;
 CYCLE(cur, "KLabor")
  {
   v[0]+=VS(cur,"KNbrWorkers")*VS(cur,"KWage");
-  v[0]+=VS(cur,"KNbrEngineers")*VS(cur,"KWageEngineers");  
  }
 
+v[0]+=V("KNbrEngineers")*V("KWageEngineers");  
 RESULT(v[0] )
 
 EQUATION("BalanceK")
@@ -1644,7 +1644,7 @@ if(v[2]>0)
  INCRS(p->hook,"ProfitB",v[4]);
 }
 
-v[5]=VL("BalanceK",1)+v[0]-v[1]-v[4]; //total liquidity after premia and interests 
+v[5]=VL("BalanceK",1)+v[0]-v[10]-v[1]-v[4]; //total liquidity after premia and interests 
 
 if(v[5]>0 && v[2]>0)
  {
@@ -2221,17 +2221,9 @@ Comment
 V("KNbrEngineers"); // compute first the number of engineers which use the past value of cumulated profits
 v[0]=V("KPrice");
 v[1]=V("KProductionFlow");
-v[8]=0;
-CYCLE(cur, "KLabor")
- {
-  v[2]=VS(cur,"KNbrWorkers");
-  v[8]+=v[2];
- }
-v[5]=V("AvKWage");
-v[3]=V("KNbrEngineers");
-v[4]=V("KWageEngineers");
+v[8]=V("LaborCostK");
 
-v[6]=(v[0]*v[1])-(v[8]*v[5])-(v[3]*v[4]);
+v[6]=(v[0]*v[1])-v[8];
 v[7]=INCR("KCumProfit",v[6]);
 
 RESULT(v[6] )
@@ -2243,24 +2235,9 @@ Comment
 */
 v[0]=V("Kmarkup");
 v[8]=V("KQ"); // productive capacity of the firm
-v[9]=V("KLaborProductivity");
-v[10]=v[9]/v[8];
-v[18]=1;
-v[17]=0;
-CYCLE(cur, "KLabor")
- {
-  v[11]=V("KWage");
-  v[16]=VS(cur,"KNbrWorkers");
-  v[17]+=v[11]*v[16];
-  v[18]+=v[16];
- }
-v[19]=v[17]/v[18];
-WRITE("AvKWage",v[19]);
-v[12]=V("KWageEngineers");
-v[13]=V("KNbrEngineers");
-v[14]=v[12]*v[13];
-v[15]=v[14]/v[8];
-v[7]=v[0]*(v[19]/v[9]+v[15]);
+v[4]=V("LaborCostK");
+v[7]=(1+v[0])*(v[4])/v[8];
+
 
 RESULT(v[7] )
 
