@@ -1186,6 +1186,14 @@ v[0]=V("TotIncome");
 v[1]=V("TotIndividuals");
 RESULT(v[0]/v[1] )
 
+EQUATION("TotIncomeCapitaReal")
+/*
+Comment
+*/
+v[0]=V("TotIncomeCapita");
+v[1]=V("AvPrice");
+RESULT(v[0]/v[1] )
+
 EQUATION("TotConsumption")
 /*
 Total Consumption
@@ -2493,7 +2501,8 @@ v[20]=(v[17]/v[18])-1;
 v[5]=(1-v[19])*v[0]+v[19]*(v[0]*(1-v[20])); //change in min wage due to changes in the labour market (as proxy of labour (excess) demand) although it should include the available number of workers, or use the beveridge curve versione, or whatever..
 ***/
 v[30]=V("AvRatioVacancies");
-v[31]=min(v[30],1.02);  
+v[32]=V("capMinWage");
+v[31]=min(v[30],1+v[32]);  
 v[5]=(1-v[19])*v[0]+v[19]*(v[0]*(v[31])); 
 /*****/
 
@@ -4309,6 +4318,37 @@ v[2]=v[1]*CURRENT+(1-v[1])*v[0];
 RESULT(v[2] )
 
 
+
+EQUATION("Dump")
+/*
+Dumping data for inequality study
+*/
+
+if(t!=100 && t%1000!=0)
+ END_EQUATION(0)
+sprintf(msg, "data%d.txt", t);
+f=fopen(msg, "w");
+
+fprintf(f,"Num\tIncome\tCons\tWealth\n");
+cur2=SEARCH("Supply");
+
+CYCLES(cur2, cur, "Firm")
+ {
+  CYCLES(cur, cur1, "Labor")
+   {
+    v[0]=VS(cur1,"NumWorkers");
+    v[1]=VS(cur1,"wage");
+    v[2]=V("Premia");
+    v[3]=VS(cur1->hook,"Consumption");
+    v[4]=VS(cur1->hook,"Individuals");
+    v[5]=VS(cur1->hook,"BalanceC");
+    fprintf(f, "%lf\t%lf\t%lf\t%lf\n", v[0],v[1]+v[2],(v[3]/v[4])*v[0],(v[5]/v[4])*v[0]);
+   }
+
+ }
+
+fclose(f);
+RESULT(1 )
 
 
 /********************************************************************************************
