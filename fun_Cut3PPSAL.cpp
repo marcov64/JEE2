@@ -73,6 +73,7 @@ WRITELS(cur1,"Age",0, t);
 WRITELS(cur1,"Visibility",0.01, t);
 WRITES(cur1,"IdFirm",v[20]=V("CounterIdFirm"));
 cur5=ADDOBJS(c,"sFirm");
+
 WRITES(cur5,"IdsFirm",v[20]);
 cur5->hook=cur1;
 cur1->hook=cur5;
@@ -100,7 +101,6 @@ WRITES(cur,"wagecoeff",v[78]);
 v[4]=V("MinWage");
 CYCLES(cur1, cur2, "Labor")
  {
-  
   v[5]=VS(cur2,"wagecoeff");
   v[6]=v[5]*v[4];
   WRITELS(cur2,"wage",v[6],t);
@@ -165,7 +165,7 @@ CYCLE_SAFE(cur, "Firm")
         INTERACTS(cur,"Dying", v[7]);
       INCRS(cur->hook->up,"AvAgeDeath",v[5]);
       INCRS(cur->hook->up,"numExit",1);      
-       INCRS(cur2->hook,"TotalDebt",-v[20]);
+      INCRS(cur2->hook,"TotalDebt",-v[20]);
       DELETE(cur->hook); 
       DELETE(cur);
       v[4]++;
@@ -3982,6 +3982,7 @@ v[3]=v[4]=0;
 
 CYCLE(cur, "Sectors")
  {
+  VS(cur,"Demography");
   WRITES(cur,"AvxS",0);
   WRITES(cur,"SUnitSales",0);
   WRITES(cur,"SQ",0); 
