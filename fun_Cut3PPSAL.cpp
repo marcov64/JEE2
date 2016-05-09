@@ -1194,6 +1194,19 @@ v[0]=V("TotIncomeCapita");
 v[1]=V("AvPrice");
 RESULT(v[0]/v[1] )
 
+EQUATION("GDPConstantCapita")
+/*
+Comment
+*/
+v[0]=V("GdpConstant");
+v[1]=V("TotIndividuals");
+if(v[1]>0.001)
+ v[2]=v[0]/v[1];
+else
+ v[2]=0; 
+RESULT(v[2] )
+
+
 EQUATION("TotConsumption")
 /*
 Total Consumption
@@ -1311,6 +1324,81 @@ else
  v[2]=v[0]/v[1]; 
 RESULT(v[2] )
 
+EQUATION("DecilesRatios")
+/*
+Compute a few statistics:
+- Income of top 1%
+- Income of top 10%
+- Ratio of 1%/90%
+- Ratio of 10%/90%
+*/
+
+v[0]=v[1]=v[2]=v[3]=v[21]=v[22]=v[23]=0;
+SORT("Class","IncomeCapita", "DOWN");
+CYCLE(cur, "Class")
+ {
+  v[4]=VS(cur,"ShareIndividuals");
+  v[7]=VS(cur,"IncomeCapita");
+  
+  v[8]=0.01;
+  if(v[0]<v[8])
+   {//for the 1%
+    v[5]=min(v[8], v[0]+v[4]);
+    v[6]=v[5]-v[0];//it is v[4], if you did not reach the threshold, or the part of it necessary to reach the top
+    v[1]+=v[7]*v[6];
+    v[21]+=v[6];
+   }
+  v[8]=0.1;
+  if(v[0]<v[8])
+   {//for the 10%
+    v[5]=min(v[8], v[0]+v[4]);
+    v[6]=v[5]-v[0];//it is v[4], if you did not reach the threshold, or the part of it necessary to reach the top
+    v[2]+=v[7]*v[6];
+    v[22]+=v[6];
+   }
+  v[0]+=v[4]; 
+ }
+WRITE("IncomeTop1",v[41]=v[1]*100);
+WRITE("IncomeTop10",v[42]=v[2]*10);
+
+v[0]=0;
+SORT("Class","IncomeCapita", "UP");
+CYCLE(cur, "Class")
+ {
+  v[4]=VS(cur,"ShareIndividuals");
+  v[7]=VS(cur,"IncomeCapita");
+  
+  v[8]=0.90;
+  if(v[0]<v[8])
+   {//for the 90%
+    v[5]=min(v[8], v[0]+v[4]);
+    v[6]=v[5]-v[0];//it is v[4], if you did not reach the threshold, or the part of it necessary to reach the top
+    v[3]+=v[7]*v[6];
+    v[23]+=v[6];
+   }
+  v[0]+=v[4];
+ }
+WRITE("IncomeBottom90",v[43]=v[3]/(0.9));
+ 
+WRITE("Ratio1-90",v[41]/v[43]);
+WRITE("Ratio10-90",v[42]/v[43]);
+SORT("Class","NumClass", "UP");
+RESULT(1 )
+
+EQUATION("GlobalIncome")
+/*
+Differentiate from TotIncome because considers also the financial rents
+*/
+
+v[0]=0;
+CYCLE(cur, "Class")
+ {
+  v[0]+=VS(cur,"Income");
+ }
+
+RESULT(v[0] )
+
+
 EQUATION("UnitLaborCost")
 /*
 Unit labor cost
@@ -1334,8 +1422,8 @@ if(v[22]>0)
  v[23]=v[21]/v[22];
 else
  v[23]=0; 
-WRITE("AvWage",v[11]);
-
+WRITE("AvWage",v[21]/v[22]);
+WRITE("LaborForce",v[22]);
 /*
 v[0]=V("CapitalCapacity");
 v[1]=V("LaborCapacity");
@@ -3606,7 +3694,56 @@ CYCLE(cur, "Class")
 WRITE("HerfTotalIncome",v[2]);
 WRITE("HerfWageIncome",v[3]);
 WRITE("HerfNonWageIncome",v[4]);
+v[10]=V("TotWage");
+v[11]=V("TotPremia");
+v[12]=V("TotIncome");
+v[13]=v[10]/v[12];
+v[14]=v[11]/v[12];
+WRITE("WageIncomeRatio",v[13]);
+WRITE("PremiaIncomeRatio",v[14]);
 RESULT(1 )
+
+EQUATION("TopBotInc")
+/*
+Ratio between top class and bottom class income
+*/
+v[2]=0;
+CYCLE(cur, "Class")
+ {
+  v[1]=VS(cur,"NumClass");
+  if(v[1]>v[2])
+   {
+    v[2]=v[1];  
+    v[3]=VS(cur,"Income"); // Top class income
+   }
+  if(v[1]==2)
+   v[4]=VS(cur,"Income"); //Bottom class income
+ }
+v[5]=v[3]/v[4];
+
+RESULT(v[5])
+
+EQUATION("TopBotEarn")
+/*
+Ratio between top and bottom class wages
+*/
+
+v[2]=0;
+CYCLE(cur, "Class")
+ {
+  v[1]=VS(cur,"NumClass");
+  if(v[1]>v[2])
+   {
+    v[2]=v[1];
+    v[3]=VS(cur,"WageIncome"); //Top class earings 
+   }
+  if(v[2]==2)
+   v[4]=VS(cur,"WageIncome"); // Bottom class wage
+ }
+v[5] = v[3]/v[4];
+
+RESULT(v[5] )
+
 
 EQUATION("InvHerfIndex")
 /*
@@ -3858,10 +3995,19 @@ CYCLE(cur, "Machinery")
 
  }
 v[11]=v[9]+v[10];
+v[12]=v[4]+v[8];
+if(v[12]==0)
+	v[13]=0;
+else
+	v[13]=1/v[12];
+v[14]=v[4]*v[13];
+v[15]=v[8]*v[13];
 WRITE("GdpConstant",v[11]);
 WRITE("GdpConstantF",v[9]);
 WRITE("GdpConstantK",v[10]);
-RESULT(v[4]+v[8] )
+WRITE("ConsumptionGdpRatio",v[14]);
+WRITE("InvestmentGdpRatio",v[15]);
+RESULT(v[12] )
 
 
 
@@ -4001,7 +4147,8 @@ CYCLE(cur, "Sectors")
   WRITES(cur,"SULC",0); 
   WRITES(cur,"SnumBLI",0);      
   WRITES(cur,"SNetWorth",0);      
-  WRITES(cur,"SAvAge",0);      
+  WRITES(cur,"SAvAge",0); 
+
  }
 
 CYCLE(cur, "Supply")
@@ -4045,6 +4192,7 @@ CYCLE(cur, "Supply")
 
  }
 
+v[40]=v[41]=0;
 CYCLE(cur1, "Firm")
  {
   v[20]=VS(cur1->hook->up,"SMonetarySales");
@@ -4059,7 +4207,18 @@ CYCLE(cur1, "Firm")
   INCRS(cur1->hook->up,"SInvHerf",v[23]*v[23]);
   INCRS(cur1->hook->up,"SAvStock",v[23]*VS(cur1,"Stocks"));
   INCRS(cur1->hook->up,"SAvBacklog",v[23]*VS(cur1,"backlog"));  
+  v[42]=VS(cur1,"AvWage");
+  v[43]=VS(cur1,"LaborForce");
+  v[40]+=v[42]*v[43];
+  v[41]+=v[43];
  }
+if(t>1)
+ v[44]=V("TotAvWage");
+else
+ v[44]=v[40]/v[41]; 
+WRITE("TotAvWage",v[40]/v[41]);
+v[45]=(v[40]/v[41]-v[44])/v[44];
+WRITE("WageGrowth",v[45]);
 
 CYCLE(cur1, "Sectors")
  {
